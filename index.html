@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CyberNeurix — Blog Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=Instrument+Sans:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+  :root {
+    --bg: #09090b;
+    --bg2: #111114;
+    --bg3: #18181c;
+    --bg4: #1f1f24;
+    --border: rgba(255,255,255,0.07);
+    --border2: rgba(255,255,255,0.13);
+    --text: #f0eff5;
+    --muted: #8b8a96;
+    --accent: #7c6af7;
+    --accent2: #4fd1aa;
+    --accent3: #f5a623;
+    --accent4: #e05b7a;
+    --accent-dim: rgba(124,106,247,0.12);
+    --accent2-dim: rgba(79,209,170,0.12);
+    --accent3-dim: rgba(245,166,35,0.1);
+    --accent4-dim: rgba(224,91,122,0.1);
+    --radius: 10px;
+    --radius-lg: 14px;
+    --mono: 'IBM Plex Mono', monospace;
+    --head: 'Syne', sans-serif;
+    --body: 'Instrument Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { font-size: 14px; }
+  body { background: var(--bg); color: var(--text); font-family: var(--body); min-height: 100vh; }
+
+  /* LAYOUT */
+  .app { display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px; height: 56px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(9,9,11,0.95); backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo { font-family: var(--head); font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
+  .logo span { color: var(--accent); }
+  .topbar-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  /* TABS */
+  .tabs-nav {
+    display: flex; gap: 2px; padding: 12px 28px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .tab-btn {
+    background: none; border: none; cursor: pointer;
+    font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.5px;
+    color: var(--muted); padding: 8px 16px 10px; position: relative;
+    text-transform: uppercase; transition: color 0.15s;
+  }
+  .tab-btn::after {
+    content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+    height: 2px; background: var(--accent); transform: scaleX(0); transition: transform 0.15s;
+  }
+  .tab-btn.active { color: var(--text); }
+  .tab-btn.active::after { transform: scaleX(1); }
+  .tab-btn:hover { color: var(--text); }
+
+  .tab-pane { display: none; padding: 28px; }
+  .tab-pane.active { display: block; }
+
+  /* SECTION HEADERS */
+  .sec-head { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+  .sec-title { font-family: var(--head); font-size: 17px; font-weight: 700; }
+  .sec-badge {
+    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+    border-radius: 4px; border: 1px solid var(--border2); color: var(--muted);
+  }
+
+  /* BUTTONS */
+  .btn {
+    font-family: var(--mono); font-size: 11px; font-weight: 500; letter-spacing: 0.3px;
+    padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border2);
+    background: var(--bg3); color: var(--text); cursor: pointer; transition: all 0.15s;
+  }
+  .btn:hover { background: var(--bg4); border-color: var(--border2); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn.primary:hover { opacity: 0.88; }
+  .btn.danger { color: var(--accent4); border-color: var(--accent4-dim); }
+  .btn.sm { padding: 4px 10px; font-size: 10px; }
+
+  /* INPUTS */
+  input, textarea, select {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text); font-family: var(--body); font-size: 13px;
+    border-radius: var(--radius); padding: 8px 12px; outline: none;
+    transition: border-color 0.15s; width: 100%;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 70px; }
+  select option { background: var(--bg3); }
+  label { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-bottom: 5px; display: block; text-transform: uppercase; letter-spacing: 0.4px; }
+
+  /* CARDS */
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 18px;
+  }
+  .card.accent-purple { border-left: 3px solid var(--accent); }
+  .card.accent-teal { border-left: 3px solid var(--accent2); }
+  .card.accent-amber { border-left: 3px solid var(--accent3); }
+  .card.accent-red { border-left: 3px solid var(--accent4); }
+
+  /* TAG CHIPS */
+  .tag {
+    display: inline-block; font-family: var(--mono); font-size: 10px;
+    padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border2);
+    color: var(--muted); margin: 2px;
+  }
+  .tag.primary { background: var(--accent-dim); border-color: rgba(124,106,247,0.3); color: #b3abff; }
+  .tag.secondary { background: var(--accent2-dim); border-color: rgba(79,209,170,0.25); color: #6ee7c4; }
+  .tag.archetype { background: var(--accent3-dim); border-color: rgba(245,166,35,0.25); color: #f5c96a; }
+
+  /* STATUS BADGES */
+  .status {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--mono); font-size: 10px; padding: 3px 9px;
+    border-radius: 20px; font-weight: 500; letter-spacing: 0.3px;
+  }
+  .status::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; display: block; }
+  .status.live { background: rgba(79,209,170,0.12); color: var(--accent2); }
+  .status.progress { background: rgba(124,106,247,0.12); color: var(--accent); }
+  .status.draft { background: rgba(139,138,150,0.1); color: var(--muted); }
+  .status.planned { background: rgba(245,166,35,0.1); color: var(--accent3); }
+
+  /* GRID HELPERS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* ─────────────────────────────────────────────── */
+  /* TAB 1 — CONTENT PLANNER */
+  /* ─────────────────────────────────────────────── */
+  .planner-toolbar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+  .planner-toolbar > * { flex-shrink: 0; }
+  .planner-toolbar input { width: 180px; flex: 1; }
+
+  .post-form {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px;
+    display: none;
+  }
+  .post-form.open { display: block; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-row { display: grid; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; }
+  .field-note { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+  .post-list { display: flex; flex-direction: column; gap: 10px; }
+  .post-item {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 16px 18px;
+    display: grid; grid-template-columns: 60px 1fr auto; gap: 16px; align-items: start;
+    transition: border-color 0.15s;
+  }
+  .post-item:hover { border-color: var(--border2); }
+  .post-day { font-family: var(--mono); font-size: 22px; font-weight: 500; color: var(--accent); line-height: 1; }
+  .post-day-label { font-family: var(--mono); font-size: 9px; color: var(--muted); text-transform: uppercase; }
+  .post-name { font-family: var(--head); font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .post-ideation { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 8px; }
+  .post-tags { display: flex; flex-wrap: wrap; gap: 3px; }
+  .post-actions { display: flex; gap: 6px; padding-top: 2px; }
+
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--muted);
+    font-family: var(--mono); font-size: 12px;
+  }
+  .empty-state .icon { font-size: 32px; margin-bottom: 12px; opacity: 0.4; }
+
+  /* ─────────────────────────────────────────────── */
+  /* TAB 2 — KANBAN */
+  /* ─────────────────────────────────────────────── */
+  .kanban-board { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+  .kanban-col { display: flex; flex-direction: column; gap: 0; }
+  .kanban-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 0 10px; border-bottom: 2px solid; margin-bottom: 14px;
+  }
+  .kanban-header h3 { font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
+  .kanban-col.col-planned .kanban-header { border-color: var(--accent3); }
+  .kanban-col.col-planned .kanban-header h3 { color: var(--accent3); }
+  .kanban-col.col-draft .kanban-header { border-color: var(--muted); }
+  .kanban-col.col-draft .kanban-header h3 { color: var(--muted); }
+  .kanban-col.col-progress .kanban-header { border-color: var(--accent); }
+  .kanban-col.col-progress .kanban-header h3 { color: var(--accent); }
+  .kanban-col.col-live .kanban-header { border-color: var(--accent2); }
+  .kanban-col.col-live .kanban-header h3 { color: var(--accent2); }
+  .kanban-count {
+    font-family: var(--mono); font-size: 10px; padding: 2px 7px;
+    border-radius: 10px; background: var(--bg3); color: var(--muted);
+  }
+  .kanban-cards { display: flex; flex-direction: column; gap: 8px; min-height: 80px; }
+  .kcard {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .kcard:hover { border-color: var(--border2); }
+  .kcard-title { font-size: 12px; font-weight: 500; margin-bottom: 6px; line-height: 1.4; }
+  .kcard-meta { display: flex; align-items: center; justify-content: space-between; }
+  .kcard-day { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .kcard-arch { font-family: var(--mono); font-size: 9px; padding: 2px 6px; border-radius: 3px; background: var(--accent3-dim); color: #f5c96a; border: 1px solid rgba(245,166,35,0.2); }
+  .kanban-add {
+    margin-top: 10px; width: 100%; background: none; border: 1px dashed var(--border);
+    color: var(--muted); font-family: var(--mono); font-size: 10px; padding: 8px;
+    border-radius: var(--radius); cursor: pointer; transition: all 0.15s;
+  }
+  .kanban-add:hover { border-color: var(--border2); color: var(--text); }
+
+  /* QUICK STATUS MODAL */
+  .status-modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200;
+    display: none; align-items: center; justify-content: center;
+  }
+  .status-modal.open { display: flex; }
+  .modal-box {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius-lg); padding: 24px; width: 360px;
+  }
+  .modal-title { font-family: var(--head); font-weight: 700; font-size: 15px; margin-bottom: 16px; }
+  .modal-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+
+  /* ─────────────────────────────────────────────── */
+  /* TAB 3 — ANALYTICS */
+  /* ─────────────────────────────────────────────── */
+  .analytics-summary { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+  .metric-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 14px 16px;
+  }
+  .metric-label { font-family: var(--mono); font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+  .metric-value { font-family: var(--head); font-size: 22px; font-weight: 700; }
+  .metric-delta { font-family: var(--mono); font-size: 10px; margin-top: 3px; }
+  .delta-up { color: var(--accent2); }
+  .delta-down { color: var(--accent4); }
+
+  .analytics-table-wrap { overflow-x: auto; }
+  .analytics-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  .analytics-table th {
+    font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.4px; color: var(--muted); padding: 10px 14px;
+    border-bottom: 1px solid var(--border); text-align: left; white-space: nowrap;
+  }
+  .analytics-table td {
+    padding: 11px 14px; border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .analytics-table tr:last-child td { border-bottom: none; }
+  .analytics-table tr:hover td { background: var(--bg3); }
+  .analytics-table .editable {
+    background: transparent; border: 1px solid transparent;
+    padding: 4px 8px; border-radius: 5px; color: var(--text);
+    font-family: var(--mono); font-size: 11px; width: 80px;
+    transition: border-color 0.15s;
+  }
+  .analytics-table .editable:focus { border-color: var(--accent); outline: none; background: var(--bg3); }
+  .bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .bar-track { height: 4px; background: var(--bg4); border-radius: 2px; flex: 1; }
+  .bar-fill { height: 4px; border-radius: 2px; background: var(--accent); transition: width 0.3s; }
+  .bar-val { font-family: var(--mono); font-size: 10px; color: var(--muted); min-width: 30px; text-align: right; }
+  .ctr-good { color: var(--accent2); }
+  .ctr-mid { color: var(--accent3); }
+  .ctr-low { color: var(--accent4); }
+
+  /* ─────────────────────────────────────────────── */
+  /* TAB 4 — STRATEGY LAB */
+  /* ─────────────────────────────────────────────── */
+  .strategy-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  /* Topic Cluster Map */
+  .cluster-map { display: flex; flex-direction: column; gap: 8px; }
+  .cluster-item {
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .cluster-item:hover { border-color: var(--border2); background: var(--bg3); }
+  .cluster-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+  .cluster-name { font-size: 12px; font-weight: 500; }
+  .cluster-posts { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .cluster-progress { height: 3px; background: var(--bg4); border-radius: 2px; }
+  .cluster-bar { height: 3px; border-radius: 2px; }
+
+  /* Content Cadence */
+  .cadence-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cadence-day-label { font-family: var(--mono); font-size: 9px; color: var(--muted); text-align: center; padding: 4px 0; text-transform: uppercase; }
+  .cadence-cell {
+    aspect-ratio: 1; border-radius: 4px; background: var(--bg3);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 9px; color: var(--muted);
+    cursor: pointer; transition: all 0.15s; border: 1px solid transparent;
+  }
+  .cadence-cell:hover { border-color: var(--border2); }
+  .cadence-cell.has-post { background: var(--accent-dim); color: var(--accent); border-color: rgba(124,106,247,0.2); }
+  .cadence-cell.published { background: var(--accent2-dim); color: var(--accent2); border-color: rgba(79,209,170,0.2); }
+
+  /* Keyword Gap Finder */
+  .kgap-list { display: flex; flex-direction: column; gap: 6px; }
+  .kgap-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; background: var(--bg3); border-radius: 7px;
+    border: 1px solid var(--border);
+  }
+  .kgap-keyword { font-family: var(--mono); font-size: 11px; }
+  .kgap-vol { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .kgap-diff {
+    font-family: var(--mono); font-size: 9px; padding: 2px 7px; border-radius: 4px;
+  }
+  .diff-easy { background: rgba(79,209,170,0.12); color: var(--accent2); }
+  .diff-med { background: rgba(245,166,35,0.1); color: var(--accent3); }
+  .diff-hard { background: rgba(224,91,122,0.1); color: var(--accent4); }
+
+  /* Idea Velocity */
+  .velocity-chart { display: flex; align-items: flex-end; gap: 6px; height: 80px; padding-top: 10px; }
+  .v-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .v-bar { width: 100%; background: var(--accent-dim); border-radius: 3px 3px 0 0; transition: height 0.3s; border: 1px solid rgba(124,106,247,0.2); }
+  .v-label { font-family: var(--mono); font-size: 9px; color: var(--muted); }
+
+  /* Pillar tracker */
+  .pillars { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .pillar-item {
+    padding: 10px 14px; border-radius: var(--radius); border: 1px solid var(--border);
+    background: var(--bg3);
+  }
+  .pillar-name { font-size: 12px; font-weight: 500; margin-bottom: 8px; }
+  .pillar-bar-track { height: 5px; background: var(--bg4); border-radius: 3px; margin-bottom: 5px; }
+  .pillar-bar-fill { height: 5px; border-radius: 3px; }
+  .pillar-count { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+
+  /* Idea Backlog */
+  .backlog-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+  .backlog-item {
+    padding: 10px 12px; background: var(--bg3); border-radius: 8px;
+    border: 1px solid var(--border); display: flex; align-items: center; gap: 10px;
+  }
+  .backlog-rank {
+    font-family: var(--mono); font-size: 11px; color: var(--accent);
+    min-width: 18px; text-align: center;
+  }
+  .backlog-text { font-size: 12px; flex: 1; line-height: 1.4; }
+  .backlog-score {
+    font-family: var(--mono); font-size: 10px; padding: 2px 7px;
+    border-radius: 4px; background: var(--accent-dim); color: var(--accent);
+  }
+  .backlog-add-row { display: flex; gap: 8px; margin-top: 10px; }
+  .backlog-add-row input { flex: 1; }
+
+  /* Quick note */
+  .quick-note {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 12px 14px;
+    font-size: 12px; line-height: 1.7; color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; z-index: 999;
+    background: var(--bg2); border: 1px solid var(--accent);
+    border-radius: var(--radius); padding: 10px 18px;
+    font-family: var(--mono); font-size: 12px; color: var(--accent);
+    transform: translateY(20px); opacity: 0; transition: all 0.25s;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* ─────────────────────────────────────────────── */
+  /* WEEKLY RHYTHM CARD */
+  /* ─────────────────────────────────────────────── */
+  .rhythm-card {
+    background: var(--bg2); border: 1px solid var(--border2);
+    border-radius: var(--radius-lg); padding: 18px; margin-bottom: 20px;
+  }
+  .rhythm-table {
+    width: 100%; border-collapse: collapse; font-size: 12px;
+  }
+  .rhythm-table th {
+    font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.4px; color: var(--muted); padding: 8px 14px;
+    border-bottom: 1px solid var(--border); text-align: left;
+  }
+  .rhythm-table td {
+    padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle;
+    font-size: 12px; line-height: 1.5;
+  }
+  .rhythm-table tr:last-child td { border-bottom: none; }
+  .rday-label { font-family: var(--mono); font-weight: 600; font-size: 13px; width: 40px; }
+  .rday-cyber { background: rgba(124,106,247,0.04); }
+  .rday-neuro { background: rgba(79,209,170,0.04); }
+  .rday-pulse { background: rgba(245,166,35,0.04); }
+
+  /* WEEK GROUP HEADER */
+  .week-group-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 0; margin: 18px 0 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .week-group-label {
+    font-family: var(--mono); font-size: 11px; font-weight: 600;
+    color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .week-group-theme {
+    font-family: var(--mono); font-size: 10px; color: var(--muted);
+  }
+  .week-group-count {
+    font-family: var(--mono); font-size: 10px; padding: 2px 7px;
+    border-radius: 4px; background: var(--bg3); color: var(--muted); margin-left: auto;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* Sync dot pulse */
+  @keyframes pulse-sync {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="logo">CYBER<span>NEURIX</span> / BLOG OS</div>
+    <div style="display:flex;align-items:center;gap:16px;">
+      <div id="sync-status" style="font-family:var(--mono);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px;">
+        <span id="sync-dot" style="width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block;"></span>
+        <span id="sync-label">Connecting…</span>
+      </div>
+      <div class="topbar-meta" id="topbar-clock"></div>
+    </div>
+  </div>
+
+  <!-- TABS NAV -->
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('planner')">01 — Content Planner</button>
+    <button class="tab-btn" onclick="switchTab('kanban')">02 — Kanban Board</button>
+    <button class="tab-btn" onclick="switchTab('analytics')">03 — Analytics</button>
+    <button class="tab-btn" onclick="switchTab('strategy')">04 — Strategy Lab</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- TAB 1: CONTENT PLANNER -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="tab-pane active" id="tab-planner">
+    <div class="planner-toolbar">
+      <div class="sec-head" style="margin:0;">
+        <span class="sec-title">Content Planner</span>
+        <span class="sec-badge" id="post-count-badge">0 posts</span>
+      </div>
+      <input type="text" id="search-posts" placeholder="Search posts…" style="max-width:180px;" oninput="renderPosts()">
+      <select id="filter-week" onchange="renderPosts()" style="width:110px;">
+        <option value="">All weeks</option>
+        <option value="Wk1">Week 1</option><option value="Wk2">Week 2</option>
+        <option value="Wk3">Week 3</option><option value="Wk4">Week 4</option>
+        <option value="Wk5">Week 5</option><option value="Wk6">Week 6</option>
+        <option value="Wk7">Week 7</option><option value="Wk8">Week 8</option>
+        <option value="Wk9">Week 9</option><option value="Wk10">Week 10</option>
+        <option value="Wk11">Week 11</option><option value="Wk12">Week 12</option>
+      </select>
+      <select id="filter-archetype" onchange="renderPosts()" style="width:120px;">
+        <option value="">All types</option>
+        <option value="Article">Article</option>
+        <option value="Deep-Dive">Deep-Dive</option>
+        <option value="Tutorial">Tutorial</option>
+        <option value="Opinion">Opinion</option>
+        <option value="Architecture">Architecture</option>
+        <option value="Case Study">Case Study</option>
+        <option value="Roundup">Roundup</option>
+      </select>
+      <button class="btn" onclick="toggleRhythm()">⟳ Rhythm</button>
+      <button class="btn primary" onclick="toggleForm()">+ New Post</button>
+      <button class="btn" onclick="exportCSV()" title="Export posts to CSV">↓ CSV</button>
+      <button class="btn" onclick="exportJSON()" title="Export full backup to JSON">↓ JSON</button>
+      <button class="btn" onclick="importJSON()" title="Import from JSON backup">↑ Import</button>
+      <input type="file" id="import-file" accept=".json" style="display:none;" onchange="handleImport(this)">
+    </div>
+
+    <!-- WEEKLY RHYTHM CARD -->
+    <div class="rhythm-card" id="rhythm-card" style="display:none;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <span style="font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Weekly Publishing Rhythm</span>
+        <button class="btn sm" onclick="toggleRhythm()">✕ Close</button>
+      </div>
+      <table class="rhythm-table">
+        <thead>
+          <tr>
+            <th>Day</th><th>Theme</th><th>Purpose</th><th>Archetype Focus</th><th>Channel</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="rday-cyber">
+            <td class="rday-label">Mon</td>
+            <td><span class="tag primary" style="margin:0;">Cybersecurity</span></td>
+            <td>Deep authority / architecture</td>
+            <td>Deep-Dive · Architecture</td>
+            <td>Blog → LinkedIn long-form</td>
+          </tr>
+          <tr class="rday-neuro">
+            <td class="rday-label">Tue</td>
+            <td><span class="tag secondary" style="margin:0;">Neurotech</span></td>
+            <td>Differentiation / future lens</td>
+            <td>Deep-Dive · Opinion</td>
+            <td>Blog → LinkedIn thought piece</td>
+          </tr>
+          <tr class="rday-cyber">
+            <td class="rday-label">Wed</td>
+            <td><span class="tag primary" style="margin:0;">Cybersecurity</span></td>
+            <td>Tactical / implementation</td>
+            <td>Tutorial · Case Study</td>
+            <td>Blog → LinkedIn carousel</td>
+          </tr>
+          <tr class="rday-neuro">
+            <td class="rday-label">Thu</td>
+            <td><span class="tag secondary" style="margin:0;">Neurotech</span></td>
+            <td>Applied / conceptual crossover</td>
+            <td>Article · Architecture</td>
+            <td>Blog → LinkedIn visual</td>
+          </tr>
+          <tr class="rday-pulse">
+            <td class="rday-label">Fri</td>
+            <td><span class="tag archetype" style="margin:0;">Pulse</span></td>
+            <td>Distribution / engagement / trends</td>
+            <td>Roundup</td>
+            <td>Newsletter → LinkedIn poll</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- ADD POST FORM -->
+    <div class="post-form" id="post-form">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <span style="font-family:var(--mono);font-size:12px;color:var(--accent);" id="form-mode-label">NEW ENTRY</span>
+        <button class="btn sm" onclick="toggleForm()">✕ Cancel</button>
+      </div>
+      <input type="hidden" id="f-edit-id" value="">
+      <div class="form-grid" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>Publish Day (DD Mon)</label>
+          <input type="text" id="f-day" placeholder="e.g. 22 Apr">
+        </div>
+        <div class="form-group">
+          <label>Post Title</label>
+          <input type="text" id="f-title" placeholder="e.g. Zero-Trust in Brain-Computer Interfaces">
+        </div>
+        <div class="form-group">
+          <label>Archetype</label>
+          <select id="f-archetype">
+            <option>Article</option>
+            <option>Deep-Dive</option>
+            <option>Tutorial</option>
+            <option>Opinion</option>
+            <option>Architecture</option>
+            <option>Case Study</option>
+            <option>Roundup</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="f-status">
+            <option value="planned">Planned</option>
+            <option value="draft">Draft</option>
+            <option value="progress">In Progress</option>
+            <option value="live">Live</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:14px;">
+        <label>Ideation / Core Angle</label>
+        <textarea id="f-ideation" placeholder="What's the unique angle? What problem does it solve? Who's the reader?"></textarea>
+      </div>
+      <div class="form-grid" style="margin-bottom:14px;">
+        <div class="form-group">
+          <label>Primary Keyword</label>
+          <input type="text" id="f-primary" placeholder="e.g. neurotechnology security">
+          <span class="field-note">Main ranking target — high intent</span>
+        </div>
+        <div class="form-group">
+          <label>Secondary Keywords (comma-separated)</label>
+          <input type="text" id="f-secondary" placeholder="e.g. BCI vulnerabilities, neural data privacy">
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn primary" id="form-save-btn" onclick="savePost()">Save Post</button>
+      </div>
+    </div>
+
+    <!-- POST LIST -->
+    <div class="post-list" id="post-list">
+      <div class="empty-state">
+        <div class="icon">◈</div>
+        <div>No posts yet. Hit <strong>+ New Post</strong> to begin.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- TAB 2: KANBAN -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-kanban">
+    <div class="sec-head">
+      <span class="sec-title">Kanban Board</span>
+      <span class="sec-badge">Drag-free status tracker</span>
+    </div>
+    <div class="kanban-board">
+      <div class="kanban-col col-planned">
+        <div class="kanban-header"><h3>Planned</h3><span class="kanban-count" id="k-count-planned">0</span></div>
+        <div class="kanban-cards" id="k-planned"></div>
+      </div>
+      <div class="kanban-col col-draft">
+        <div class="kanban-header"><h3>Draft</h3><span class="kanban-count" id="k-count-draft">0</span></div>
+        <div class="kanban-cards" id="k-draft"></div>
+      </div>
+      <div class="kanban-col col-progress">
+        <div class="kanban-header"><h3>In Progress</h3><span class="kanban-count" id="k-count-progress">0</span></div>
+        <div class="kanban-cards" id="k-progress"></div>
+      </div>
+      <div class="kanban-col col-live">
+        <div class="kanban-header"><h3>Live</h3><span class="kanban-count" id="k-count-live">0</span></div>
+        <div class="kanban-cards" id="k-live"></div>
+      </div>
+    </div>
+    <div style="margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--muted);">
+      ↑ Click any card to edit its status, keywords, analytics, and more. All changes save instantly.
+    </div>
+  </div>
+
+  <!-- KANBAN FULL EDIT MODAL -->
+  <div class="status-modal" id="status-modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-box" style="width:520px;max-height:88vh;overflow-y:auto;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;" id="modal-week-label"></div>
+          <div class="modal-title" id="modal-post-title" style="font-size:13px;line-height:1.4;"></div>
+        </div>
+        <button class="btn sm" onclick="closeModal()" style="flex-shrink:0;margin-top:2px;">✕</button>
+      </div>
+
+      <!-- STATUS + PRIORITY ROW -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div class="form-group">
+          <label>Status</label>
+          <select id="modal-status">
+            <option value="planned">📋 Planned</option>
+            <option value="draft">✏️ Draft</option>
+            <option value="progress">⚡ In Progress</option>
+            <option value="live">🟢 Live</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Archetype</label>
+          <select id="modal-archetype">
+            <option>Article</option><option>Deep-Dive</option><option>Tutorial</option>
+            <option>Opinion</option><option>Architecture</option><option>Case Study</option><option>Roundup</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- KEYWORDS -->
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Primary Keyword</label>
+        <input type="text" id="modal-primary" placeholder="Main ranking target">
+      </div>
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Secondary Keywords (comma-separated)</label>
+        <input type="text" id="modal-secondary" placeholder="e.g. BCI security, neural privacy">
+      </div>
+
+      <!-- CORE ANGLE -->
+      <div class="form-group" style="margin-bottom:12px;">
+        <label>Core Angle / Ideation</label>
+        <textarea id="modal-ideation" style="min-height:70px;" placeholder="What's the unique angle for this post?"></textarea>
+      </div>
+
+      <!-- ANALYTICS SECTION -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:14px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">📊 Analytics (fill in after publishing)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;">
+          <div class="form-group">
+            <label>Impressions</label>
+            <input type="number" id="modal-impressions" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>Clicks</label>
+            <input type="number" id="modal-clicks" placeholder="0" min="0">
+          </div>
+          <div class="form-group">
+            <label>CTR %</label>
+            <input type="number" id="modal-ctr" placeholder="0.0" step="0.1" min="0">
+          </div>
+          <div class="form-group">
+            <label>Avg. Position</label>
+            <input type="number" id="modal-pos" placeholder="—" step="0.1" min="0">
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:10px;">
+          <label>Analytics Notes</label>
+          <input type="text" id="modal-anotes" placeholder="e.g. Featured snippet, rank improved after edit…">
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn danger" onclick="deletePostFromModal()">Delete post</button>
+        <div style="display:flex;gap:8px;">
+          <button class="btn" onclick="closeModal()">Cancel</button>
+          <button class="btn primary" onclick="applyModal()">Save changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- TAB 3: ANALYTICS -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-analytics">
+    <div class="sec-head">
+      <span class="sec-title">Post Analytics</span>
+      <span class="sec-badge">Update metrics inline</span>
+    </div>
+    <div class="analytics-summary" id="analytics-summary">
+      <div class="metric-card">
+        <div class="metric-label">Total Impressions</div>
+        <div class="metric-value" id="m-impressions">0</div>
+        <div class="metric-delta muted">across all posts</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total Clicks</div>
+        <div class="metric-value" id="m-clicks">0</div>
+        <div class="metric-delta muted">search traffic</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Avg. CTR</div>
+        <div class="metric-value" id="m-ctr">—</div>
+        <div class="metric-delta muted">click-through rate</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Avg. Position</div>
+        <div class="metric-value" id="m-pos">—</div>
+        <div class="metric-delta muted">search ranking</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Live Posts</div>
+        <div class="metric-value" id="m-live">0</div>
+        <div class="metric-delta muted">published</div>
+      </div>
+    </div>
+    <div class="analytics-table-wrap">
+      <table class="analytics-table">
+        <thead>
+          <tr>
+            <th style="width:200px;">Post Title</th>
+            <th>Archetype</th>
+            <th>Status</th>
+            <th>Primary KW</th>
+            <th>Impressions</th>
+            <th>Clicks</th>
+            <th>CTR %</th>
+            <th>Avg. Pos</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody id="analytics-body">
+          <tr><td colspan="9" style="text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px;padding:30px;">Add posts from Tab 1 to track analytics here.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════ -->
+  <!-- TAB 4: STRATEGY LAB -->
+  <!-- ═══════════════════════════════════════════ -->
+  <div class="tab-pane" id="tab-strategy">
+    <div class="sec-head" style="margin-bottom:6px;">
+      <span class="sec-title">Strategy Lab</span>
+      <span class="sec-badge">Plan smarter · Close gaps · Build velocity</span>
+    </div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-bottom:22px;">
+      Use this tab to manage your content strategy — track topic clusters, surface keyword gaps, plan your publishing schedule, and queue up ideas before they slip away.
+    </div>
+
+    <!-- ROW 1: CLUSTER MAP + KEYWORD GAPS -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+      <!-- TOPIC CLUSTER MAP -->
+      <div class="card accent-purple">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;">Topic Cluster Map</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;">Group your posts by theme. Track how many you've written per cluster vs your target.</div>
+          </div>
+          <button class="btn sm" onclick="addCluster()" title="Add a new topic cluster">+ Cluster</button>
+        </div>
+        <hr style="margin:10px 0 14px;">
+        <div class="cluster-map" id="cluster-map"></div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px;line-height:1.6;">
+          💡 <strong style="color:var(--text);">How to use:</strong> Clusters are split across <strong style="color:var(--accent);">Cybersecurity</strong> (SIEM, SOC, Detection) and <strong style="color:var(--accent2);">Neurotech</strong> (BCI, Neural Privacy, Ethics). Edit the written/target counts inline. Add new clusters with <strong>+ Cluster</strong>, remove with ✕.
+        </div>
+      </div>
+
+      <!-- KEYWORD GAP TRACKER -->
+      <div class="card accent-teal">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div>
+            <div style="font-family:var(--mono);font-size:11px;color:var(--accent2);text-transform:uppercase;letter-spacing:.5px;">Keyword Opportunities</div>
+            <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;">Keywords you should be ranking for but haven't written about yet.</div>
+          </div>
+          <button class="btn sm" onclick="addKGap()" title="Add a keyword gap">+ Keyword</button>
+        </div>
+        <hr style="margin:10px 0 14px;">
+        <div class="kgap-list" id="kgap-list"></div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:12px;line-height:1.6;">
+          💡 <strong style="color:var(--text);">How to use:</strong> Keywords are pre-loaded for both <strong style="color:var(--accent);">Cybersecurity</strong> (SIEM, SOC, detection) and <strong style="color:var(--accent2);">Neurotech</strong> (BCI, neural privacy). Add new ones from GSC or Ahrefs. Hit ✕ once you've written the post.
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 2: PUBLISHING CADENCE + PILLAR BALANCE -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+
+      <!-- CONTENT CADENCE -->
+      <div class="card accent-amber">
+        <div style="margin-bottom:6px;">
+          <div style="font-family:var(--mono);font-size:11px;color:var(--accent3);text-transform:uppercase;letter-spacing:.5px;">12-Week Publishing Cadence</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;">A heatmap of your planned vs published posts across 12 weeks. Each row = 1 week, each cell = 1 day (Mon–Sun).</div>
+        </div>
+        <hr style="margin:10px 0 14px;">
+        <div style="display:flex;flex-direction:column;gap:4px;" id="cadence-wrap"></div>
+        <div style="display:flex;gap:12px;margin-top:14px;font-family:var(--mono);font-size:10px;color:var(--muted);align-items:center;flex-wrap:wrap;">
+          <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--accent-dim);border:1px solid rgba(124,106,247,0.3);display:inline-block;"></span>Planned / In Progress</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--accent2-dim);border:1px solid rgba(79,209,170,0.3);display:inline-block;"></span>Published (Live)</span>
+          <span style="display:inline-flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;border-radius:2px;background:var(--bg3);display:inline-block;"></span>No post</span>
+        </div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px;line-height:1.6;">
+          💡 <strong style="color:var(--text);">How to use:</strong> This auto-populates from your posts in Tab 1. Posts with a <em>Wk# · Day</em> date format will appear here. Go to the Content Planner, add or edit posts, and this cadence refreshes instantly.
+        </div>
+      </div>
+
+      <!-- PILLAR BALANCE + VELOCITY -->
+      <div class="card accent-red">
+        <div style="margin-bottom:6px;">
+          <div style="font-family:var(--mono);font-size:11px;color:var(--accent4);text-transform:uppercase;letter-spacing:.5px;">Content Pillar Balance</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;">Are you writing too many Articles and not enough Case Studies? This tells you.</div>
+        </div>
+        <hr style="margin:10px 0 14px;">
+        <div class="pillars" id="pillars-wrap"></div>
+        <hr style="margin:14px 0;">
+        <div style="margin-bottom:6px;">
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Idea Velocity — posts per week</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:2px;">How many posts you've planned/published across the last 8 weeks.</div>
+        </div>
+        <div class="velocity-chart" id="velocity-chart"></div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:10px;line-height:1.6;">
+          💡 <strong style="color:var(--text);">How to use:</strong> Pillar Balance updates as you tag posts by archetype in Tab 1. Aim for a healthy mix — avoid 80% Articles. Velocity shows your publishing rhythm — low bars mean slow weeks.
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 3: IDEA BACKLOG — full width, prominent -->
+    <div class="card" style="border:1px solid var(--border2);">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">💡 Idea Backlog &amp; Prioritisation</div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px;">Capture raw ideas here so nothing slips away. Score them by potential, then promote the best ones into Tab 1 as real posts.</div>
+        </div>
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:right;">
+          Sorted by score ↕ <span style="color:var(--accent);">highest first</span>
+        </div>
+      </div>
+      <hr style="margin:10px 0 16px;">
+
+      <!-- ADD IDEA FORM — prominent -->
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:16px;">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">+ Add new idea</div>
+        <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;">
+          <div style="flex:1;min-width:200px;" class="form-group">
+            <label>Idea / Working title</label>
+            <input type="text" id="backlog-input" placeholder="e.g. Why SOC teams miss 40% of alerts — or — Why EEG data is more dangerous than your password" onkeydown="if(event.key==='Enter')addBacklogItem()">
+          </div>
+          <div class="form-group" style="width:140px;">
+            <label>Priority score</label>
+            <select id="backlog-score">
+              <option value="9">🔥 Hot — 9/10</option>
+              <option value="7" selected>↑ High — 7/10</option>
+              <option value="5">~ Mid — 5/10</option>
+              <option value="3">↓ Low — 3/10</option>
+            </select>
+          </div>
+          <button class="btn primary" onclick="addBacklogItem()" style="margin-bottom:1px;">Add to backlog</button>
+        </div>
+      </div>
+
+      <!-- BACKLOG LIST -->
+      <div id="backlog-list" style="display:flex;flex-direction:column;gap:6px;max-height:320px;overflow-y:auto;"></div>
+
+      <div style="margin-top:14px;padding:10px 14px;background:var(--bg3);border-radius:var(--radius);border:1px solid var(--border);">
+        <div style="font-family:var(--mono);font-size:10px;color:var(--muted);line-height:1.7;">
+          💡 <strong style="color:var(--text);">How to use the backlog:</strong> Drop any raw idea here — from both <strong style="color:var(--accent);">Cybersecurity</strong> (SOC tactics, detection rules, tool comparisons) and <strong style="color:var(--accent2);">Neurotech</strong> (BCI risks, neural privacy, ethics). Score by potential impact. Hit <strong style="color:var(--accent2);">↑ Use</strong> to promote an idea directly into the Content Planner as a new post. Remove once written or discarded.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════
+// SUPABASE — realtime sync
+// ══════════════════════════════════════════════
+const SUPABASE_URL  = 'https://alxtlzxbjpxxdrpohnvb.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFseHRsenhianB4eGRycG9obnZiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTM3NTUsImV4cCI6MjA5MDAyOTc1NX0.7B41JEAgwt0LmubRQoq4csfTdH4J_I2DXUzHe7iGZkw';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+function setSyncStatus(state) {
+  // state: 'connecting' | 'live' | 'saving' | 'error' | 'offline'
+  const dot   = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  if (!dot || !label) return;
+  const map = {
+    connecting : { color:'var(--muted)',   text:'Connecting…'     },
+    live       : { color:'var(--accent2)', text:'Live ✓'           },
+    saving     : { color:'var(--accent3)', text:'Saving…'          },
+    error      : { color:'var(--accent4)', text:'Sync error'       },
+    offline    : { color:'var(--accent4)', text:'Offline (local)'  },
+  };
+  const s = map[state] || map.connecting;
+  dot.style.background = s.color;
+  label.textContent    = s.text;
+  if (state === 'live') dot.style.animation = 'pulse-sync 2s infinite';
+  else dot.style.animation = 'none';
+}
+
+// ── DB helpers ──────────────────────────────────────────────────────────────
+async function dbUpsertPost(p) {
+  const row = {
+    id: p.id, day: p.day, title: p.title, archetype: p.archetype,
+    status: p.status, ideation: p.ideation||'',
+    primary_kw: p.primary||'', secondary_kw: p.secondary||''
+  };
+  const { error } = await sb.from('cnx_posts').upsert(row, {onConflict:'id'});
+  if (error) console.error('upsertPost:', error);
+  return !error;
+}
+
+async function dbDeletePost(id) {
+  const { error } = await sb.from('cnx_posts').delete().eq('id', id);
+  if (error) console.error('deletePost:', error);
+  await sb.from('cnx_analytics').delete().eq('post_id', id);
+  return !error;
+}
+
+async function dbUpsertAnalytic(postId, a) {
+  const row = {
+    post_id: postId,
+    impressions: parseInt(a.impressions)||0,
+    clicks: parseInt(a.clicks)||0,
+    ctr: parseFloat(a.ctr)||0,
+    avg_position: parseFloat(a.pos)||0,
+    notes: a.notes||''
+  };
+  const { error } = await sb.from('cnx_analytics').upsert(row, {onConflict:'post_id'});
+  if (error) console.error('upsertAnalytic:', error);
+  return !error;
+}
+
+async function dbSaveStrategy() {
+  const row = { id: 1, clusters, kgaps, backlog };
+  const { error } = await sb.from('cnx_strategy').upsert(row, {onConflict:'id'});
+  if (error) console.error('saveStrategy:', error);
+  return !error;
+}
+
+// ── Full load from DB ────────────────────────────────────────────────────────
+async function dbLoadAll() {
+  try {
+    const postsRes     = await sb.from('cnx_posts').select('*').order('id');
+    const analyticsRes = await sb.from('cnx_analytics').select('*');
+    const strategyRes  = await sb.from('cnx_strategy').select('*').eq('id', 1).maybeSingle();
+
+    if (postsRes.error || analyticsRes.error) {
+      const err = postsRes.error || analyticsRes.error;
+      const msg = err.message || err.code || JSON.stringify(err);
+      console.error('dbLoadAll error:', msg);
+      toast('DB error: ' + msg.slice(0, 80));
+      return false;
+    }
+
+    if (postsRes.data && postsRes.data.length > 0) {
+      posts = postsRes.data.map(r => ({
+        id: r.id, day: r.day, title: r.title, archetype: r.archetype,
+        status: r.status, ideation: r.ideation||'',
+        primary: r.primary_kw||'', secondary: r.secondary_kw||''
+      }));
+    }
+
+    if (analyticsRes.data) {
+      analyticsRes.data.forEach(r => {
+        analytics[r.post_id] = {
+          impressions: r.impressions||'', clicks: r.clicks||'',
+          ctr: r.ctr||'', pos: r.avg_position||'', notes: r.notes||''
+        };
+      });
+    }
+
+    // Ensure analytics entry for every post
+    posts.forEach(p => { if (!analytics[p.id]) analytics[p.id] = {impressions:'',clicks:'',ctr:'',pos:'',notes:''}; });
+
+    if (strategyRes.data) {
+      if (strategyRes.data.clusters?.length)  clusters = strategyRes.data.clusters;
+      if (strategyRes.data.kgaps?.length)     kgaps    = strategyRes.data.kgaps;
+      if (strategyRes.data.backlog?.length)   backlog  = strategyRes.data.backlog;
+    }
+
+    return true;
+  } catch(e) {
+    const msg = e.message || String(e);
+    console.error('dbLoadAll exception:', msg);
+    toast('DB exception: ' + msg.slice(0, 80));
+    return false;
+  }
+}
+
+// ── Seed DB on very first run ─────────────────────────────────────────────────
+async function seedIfEmpty() {
+  const { data, error } = await sb.from('cnx_posts').select('id').limit(1);
+  if (error || (data && data.length > 0)) return; // already seeded or error
+
+  toast('First run — seeding 60 posts…');
+  // Insert all default posts in batches
+  const rows = DEFAULT_POSTS.map(p => ({
+    id: p.id, day: p.day, title: p.title, archetype: p.archetype,
+    status: p.status, ideation: p.ideation||'',
+    primary_kw: p.primary||'', secondary_kw: p.secondary||''
+  }));
+  const { error: insErr } = await sb.from('cnx_posts').insert(rows);
+  if (insErr) { console.error('seed insert error:', insErr); return; }
+
+  // Seed strategy defaults
+  await sb.from('cnx_strategy').upsert({ id:1, clusters, kgaps, backlog }, {onConflict:'id'});
+  toast('Seeded ✓ — Loading…');
+}
+
+// ── Realtime — poll every 15s (avoids DataCloneError from websocket) ─────────
+function subscribeRealtime() {
+  setSyncStatus('live');
+  setInterval(async () => {
+    const ok = await dbLoadAll();
+    if (ok) { localSave(); renderAll(); setSyncStatus('live'); }
+    else { setSyncStatus('error'); }
+  }, 15000);
+}
+
+// ── LOCAL FALLBACK ────────────────────────────────────────────────────────────
+function localSave() {
+  try {
+    localStorage.setItem('cnx_posts',     JSON.stringify(posts));
+    localStorage.setItem('cnx_analytics', JSON.stringify(analytics));
+    localStorage.setItem('cnx_clusters',  JSON.stringify(clusters));
+    localStorage.setItem('cnx_kgaps',     JSON.stringify(kgaps));
+    localStorage.setItem('cnx_backlog',   JSON.stringify(backlog));
+  } catch(e) {}
+}
+
+// ── Primary save — writes to Supabase, falls back to localStorage ─────────────
+async function save(opts = {}) {
+  setSyncStatus('saving');
+  localSave(); // always persist locally first
+
+  const ops = [];
+  if (opts.post)     ops.push(dbUpsertPost(opts.post));
+  if (opts.delPost)  ops.push(dbDeletePost(opts.delPost));
+  if (opts.analytic) ops.push(dbUpsertAnalytic(opts.analytic.postId, opts.analytic.data));
+  if (opts.strategy || (!opts.post && !opts.delPost && !opts.analytic)) ops.push(dbSaveStrategy());
+
+  try {
+    const results = await Promise.all(ops);
+    const allOk = results.every(Boolean);
+    setSyncStatus(allOk ? 'live' : 'error');
+  } catch(e) {
+    console.error('save error:', e);
+    setSyncStatus('offline');
+  }
+}
+
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let posts     = JSON.parse(localStorage.getItem('cnx_posts')     || '[]');
+let analytics = JSON.parse(localStorage.getItem('cnx_analytics') || '{}');
+
+let clusters = JSON.parse(localStorage.getItem('cnx_clusters') || JSON.stringify([
+  {name:'SIEM & Log Management',       posts:4, target:10, color:'var(--accent)'},
+  {name:'SOC Design & Operations',     posts:3, target:8,  color:'#818cf8'},
+  {name:'Detection Engineering',       posts:2, target:7,  color:'#a78bfa'},
+  {name:'Threat Intelligence',         posts:1, target:6,  color:'var(--accent4)'},
+  {name:'BCI Security & Threat Models',posts:3, target:8,  color:'var(--accent2)'},
+  {name:'Neural Data Privacy',         posts:2, target:6,  color:'#34d399'},
+  {name:'Neurotechnology Ethics',      posts:1, target:5,  color:'var(--accent3)'},
+  {name:'Neurosecurity Regulations',   posts:0, target:4,  color:'#f472b6'},
+]));
+
+let kgaps = JSON.parse(localStorage.getItem('cnx_kgaps') || JSON.stringify([
+  {kw:'SIEM architecture guide',               vol:'2.4K', diff:'med'},
+  {kw:'how to build a SOC from scratch',       vol:'1.8K', diff:'easy'},
+  {kw:'detection engineering best practices',  vol:'1.1K', diff:'med'},
+  {kw:'Splunk vs ELK Stack 2025',             vol:'900',  diff:'easy'},
+  {kw:'SOC alert fatigue solutions',           vol:'720',  diff:'easy'},
+  {kw:'SIEM vs XDR comparison',               vol:'650',  diff:'med'},
+  {kw:'threat hunting playbook',              vol:'540',  diff:'hard'},
+  {kw:'detection as code tutorial',           vol:'310',  diff:'hard'},
+  {kw:'neurotechnology cybersecurity',         vol:'1.2K', diff:'easy'},
+  {kw:'brain-computer interface security',     vol:'880',  diff:'med'},
+  {kw:'neural data privacy laws',             vol:'640',  diff:'easy'},
+  {kw:'EEG hacking risks',                    vol:'390',  diff:'easy'},
+  {kw:'BCI zero-trust architecture',          vol:'210',  diff:'hard'},
+  {kw:'implantable device vulnerabilities',   vol:'170',  diff:'med'},
+]));
+
+let backlog = JSON.parse(localStorage.getItem('cnx_backlog') || JSON.stringify([
+  {text:'How to run a tabletop exercise for your SOC team',                     score:9},
+  {text:'The detection rule lifecycle: write, test, tune, retire',              score:9},
+  {text:'Why most SIEM deployments fail in year one — and how to fix it',       score:8},
+  {text:'Threat hunting without EDR: what you can still do with logs',          score:8},
+  {text:'MITRE ATT&CK mapping: common mistakes and how to avoid them',          score:7},
+  {text:'Building a detection engineering programme from nothing',              score:7},
+  {text:'The real cost of alert fatigue on your security team',                 score:6},
+  {text:'SOC metrics that actually matter vs vanity metrics',                   score:6},
+  {text:'Zero trust for small security teams: a practical starting point',      score:5},
+  {text:'Why your EEG data is more dangerous than your password',               score:9},
+  {text:'The OWASP Top 10 for neural interfaces',                               score:8},
+  {text:"Deep-dive: Neuralink's security model (and its gaps)",                 score:7},
+  {text:'Building a threat model for BCIs from scratch',                        score:7},
+  {text:'Regulatory landscape: GDPR vs neural data in 2025',                   score:6},
+  {text:'Neural replay attacks: can your brainwave pattern be stolen?',         score:6},
+  {text:'What neurotech vendors never tell you about data retention',           score:5},
+]));
+
+const DEFAULT_POSTS = [
+  // ── WEEK 1 — DEEP DIVE ─────────────────────────────────────────────────
+  {id:'w1mon',day:'Wk1 · Mon',title:'Modern SIEM Architecture (End-to-End)',archetype:'Deep-Dive',status:'planned',
+   ideation:'Comprehensive breakdown of how modern SIEMs are architected — data ingestion to alerting. Position as the definitive reference for security engineers.',
+   primary:'SIEM architecture',secondary:'enterprise SIEM design, security information event management, SOC architecture guide'},
+  {id:'w1tue',day:'Wk1 · Tue',title:'What is Neurotechnology? (A Security Lens)',archetype:'Deep-Dive',status:'planned',
+   ideation:'Introduce neurotechnology through a cybersecurity lens — what it is, why security professionals should care, and what risks it introduces.',
+   primary:'neurotechnology security',secondary:'brain computer interface, neurosecurity overview, neurotech cybersecurity'},
+  {id:'w1wed',day:'Wk1 · Wed',title:'Log Pipeline Breakdown (Splunk Focus)',archetype:'Deep-Dive',status:'planned',
+   ideation:'Step-by-step anatomy of a log pipeline — forwarders, indexers, search heads, and HEC. Tactical implementation value.',
+   primary:'Splunk log pipeline',secondary:'log management SIEM, Splunk architecture explained, log ingestion flow'},
+  {id:'w1thu',day:'Wk1 · Thu',title:'Brain-Computer Interfaces & Threat Models',archetype:'Deep-Dive',status:'planned',
+   ideation:'Map a formal threat model onto BCI systems — apply STRIDE or ATT&CK thinking to neural interfaces. Cross-disciplinary thought leadership.',
+   primary:'BCI threat model',secondary:'brain computer interface security, neurotechnology risk framework, BCI vulnerabilities'},
+  {id:'w1fri',day:'Wk1 · Fri',title:'Top 5 Security Failures This Week',archetype:'Roundup',status:'planned',
+   ideation:'Weekly pulse rounding up the biggest security failures and what defenders can learn. Distribution-first format — quotable and shareable.',
+   primary:'cybersecurity failures weekly',secondary:'security breach news, infosec trends roundup, weekly security analysis'},
+  // ── WEEK 2 — HOW-TO ────────────────────────────────────────────────────
+  {id:'w2mon',day:'Wk2 · Mon',title:'How to Design a Scalable SOC',archetype:'Tutorial',status:'planned',
+   ideation:'Practical blueprint for building a SOC that scales — people, process, and technology. Covers tier structure, tooling, and common mistakes.',
+   primary:'scalable SOC design',secondary:'security operations center setup, SOC architecture guide, how to build a SOC'},
+  {id:'w2tue',day:'Wk2 · Tue',title:'How Neuro Signals Are Processed (Simplified)',archetype:'Tutorial',status:'planned',
+   ideation:'Demystify neural signal processing for a security audience — EEG, amplification, artifact removal, and feature extraction explained plainly.',
+   primary:'neural signal processing explained',secondary:'EEG data processing guide, brain signal analysis simplified, neurotechnology basics'},
+  {id:'w2wed',day:'Wk2 · Wed',title:'How to Onboard Logs in Splunk Properly',archetype:'Tutorial',status:'planned',
+   ideation:'Step-by-step guide to proper log onboarding — source types, index design, field extraction, and CIM compliance. Immediately actionable.',
+   primary:'Splunk log onboarding guide',secondary:'Splunk configuration tutorial, log ingestion best practices, Splunk setup steps'},
+  {id:'w2thu',day:'Wk2 · Thu',title:'How Neurotech Data Could Be Secured',archetype:'Tutorial',status:'planned',
+   ideation:'Apply existing security controls — encryption, access management, data minimization — to neurotech data pipelines. Bridge between disciplines.',
+   primary:'neurotechnology data security guide',secondary:'brain data protection methods, neural privacy controls, BCI data security how-to'},
+  {id:'w2fri',day:'Wk2 · Fri',title:'Tools & Techniques Trending This Week',archetype:'Roundup',status:'planned',
+   ideation:'Highlight emerging tools, techniques, and releases from the past week. Mix of offensive and defensive. Community engagement driver.',
+   primary:'cybersecurity tools trending',secondary:'infosec tools review weekly, security techniques roundup, new security tools'},
+  // ── WEEK 3 — MYTH BUSTING ──────────────────────────────────────────────
+  {id:'w3mon',day:'Wk3 · Mon',title:'Myth: SIEM Equals Security',archetype:'Opinion',status:'planned',
+   ideation:'Dismantle the dangerous assumption that deploying a SIEM means you are secure. Cover what SIEM actually does and what it cannot replace.',
+   primary:'SIEM misconceptions',secondary:'SIEM limitations explained, cybersecurity myths debunked, SIEM vs full security program'},
+  {id:'w3tue',day:'Wk3 · Tue',title:'Myth: Neurotechnology Is Science Fiction',archetype:'Opinion',status:'planned',
+   ideation:'Counter the dismissal of neurotech as futuristic fantasy. Ground readers with real commercial BCIs, FDA approvals, and current market deployments.',
+   primary:'neurotechnology reality today',secondary:'neurotech applications now, brain computer interface commercial use, neurotechnology myths debunked'},
+  {id:'w3wed',day:'Wk3 · Wed',title:'Myth: More Logs Equal Better Security',archetype:'Opinion',status:'planned',
+   ideation:'Challenge the volume-over-quality approach to logging. Make the case for targeted, high-fidelity log sources and proper normalization.',
+   primary:'log management myths',secondary:'SIEM alert fatigue causes, log overload security problem, logging best practices'},
+  {id:'w3thu',day:'Wk3 · Thu',title:'Myth: Brain Data Is Too Complex to Hack',archetype:'Opinion',status:'planned',
+   ideation:'Expose the false sense of security around neural data complexity. Show how signal extraction, ML, and replay attacks make this a real threat.',
+   primary:'neural data vulnerabilities',secondary:'brain data hacking risks, BCI security myths, neurotechnology attack surface reality'},
+  {id:'w3fri',day:'Wk3 · Fri',title:'Biggest Misconceptions in Security This Week',archetype:'Roundup',status:'planned',
+   ideation:'Weekly myth-busting roundup — community misconceptions, vendor FUD, and media misreporting corrected with evidence.',
+   primary:'cybersecurity misconceptions weekly',secondary:'infosec myths roundup, security awareness, vendor FUD debunked'},
+  // ── WEEK 4 — CASE STUDY ────────────────────────────────────────────────
+  {id:'w4mon',day:'Wk4 · Mon',title:'SOC Failure Case Study',archetype:'Case Study',status:'planned',
+   ideation:'Detailed post-mortem of a real or composite SOC failure — missed alerts, process breakdown, and lessons learned. High credibility content.',
+   primary:'SOC failure case study',secondary:'security operations failure analysis, SOC incident post-mortem, cybersecurity lessons learned'},
+  {id:'w4tue',day:'Wk4 · Tue',title:'Neural Data Privacy Incident Analysis',archetype:'Case Study',status:'planned',
+   ideation:'Analyze a real or hypothetical neural data privacy incident — data leakage, consent gaps, or unauthorized neural profiling. First-mover content.',
+   primary:'neural data privacy breach',secondary:'neurotechnology privacy incident, brain data leak analysis, BCI privacy case study'},
+  {id:'w4wed',day:'Wk4 · Wed',title:'Splunk Deployment Gone Wrong',archetype:'Case Study',status:'planned',
+   ideation:'Chronicle a failed Splunk deployment — licensing miscalculation, architecture mistakes, missed onboarding. Practitioner-resonant cautionary tale.',
+   primary:'Splunk deployment failure',secondary:'Splunk case study lessons, SIEM implementation mistakes, Splunk troubleshooting guide'},
+  {id:'w4thu',day:'Wk4 · Thu',title:'Neurotech Startup Risk Analysis',archetype:'Case Study',status:'planned',
+   ideation:'Assess the security and privacy risk posture of a neurotech startup — data handling, regulatory exposure, and attack surface.',
+   primary:'neurotech startup security risks',secondary:'neurotechnology risk assessment, BCI startup vulnerabilities, neurotech compliance gaps'},
+  {id:'w4fri',day:'Wk4 · Fri',title:'Case Study Breakdown of the Week',archetype:'Roundup',status:'planned',
+   ideation:'Summarize and contextualize the most instructive cybersecurity case study from the past week. Educational format with clear takeaways.',
+   primary:'cybersecurity case study weekly',secondary:'security incident analysis roundup, weekly breach breakdown, infosec case study review'},
+  // ── WEEK 5 — FRAMEWORK ─────────────────────────────────────────────────
+  {id:'w5mon',day:'Wk5 · Mon',title:'SIEM Maturity Model',archetype:'Architecture',status:'planned',
+   ideation:'Define a 5-level SIEM maturity model — from reactive logging to autonomous response. Give readers a benchmark and a clear roadmap.',
+   primary:'SIEM maturity model',secondary:'security maturity framework, SOC maturity assessment, SIEM program evaluation'},
+  {id:'w5tue',day:'Wk5 · Tue',title:'Neuro Data Risk Framework',archetype:'Architecture',status:'planned',
+   ideation:'Propose a structured risk framework for neurotechnology data — classify data sensitivity, map attack vectors, and define controls.',
+   primary:'neural data risk framework',secondary:'neurotechnology risk assessment, brain data governance model, neurotech risk management'},
+  {id:'w5wed',day:'Wk5 · Wed',title:'Detection Engineering Lifecycle',archetype:'Architecture',status:'planned',
+   ideation:'Map the full detection engineering lifecycle — hypothesis, rule development, testing, deployment, and tuning. Definitive reference post.',
+   primary:'detection engineering lifecycle',secondary:'threat detection framework phases, SIEM detection rules methodology, detection-as-code'},
+  {id:'w5thu',day:'Wk5 · Thu',title:'Cognitive Threat Modeling Framework',archetype:'Architecture',status:'planned',
+   ideation:'Introduce a threat modeling framework purpose-built for cognitive and neural systems — adapting STRIDE or PASTA for BCI contexts.',
+   primary:'cognitive threat modeling',secondary:'neurosecurity framework, BCI threat modeling methodology, neural interface risk framework'},
+  {id:'w5fri',day:'Wk5 · Fri',title:'Framework of the Week',archetype:'Roundup',status:'planned',
+   ideation:'Spotlight a security or neurotech framework worth knowing — summarize, contextualize, and explain why it matters right now.',
+   primary:'cybersecurity framework spotlight',secondary:'infosec frameworks weekly, security framework comparison, framework review roundup'},
+  // ── WEEK 6 — INFOGRAPHIC ───────────────────────────────────────────────
+  {id:'w6mon',day:'Wk6 · Mon',title:'SIEM Data Flow (Visual Breakdown)',archetype:'Article',status:'planned',
+   ideation:'Visual-first post mapping SIEM data flow from source to dashboard. Include annotated diagram. High shareability on LinkedIn.',
+   primary:'SIEM data flow diagram',secondary:'SIEM architecture visual, security data flow explained, log flow visualization'},
+  {id:'w6tue',day:'Wk6 · Tue',title:'Brain Signal Flow (Visual Breakdown)',archetype:'Article',status:'planned',
+   ideation:'Illustrate how neural signals travel from the brain to a BCI device to data pipeline. Accessible visual for a crossover security audience.',
+   primary:'brain signal flow diagram',secondary:'neural signal processing visual, EEG data pipeline flow, BCI signal architecture'},
+  {id:'w6wed',day:'Wk6 · Wed',title:'Detection Pipeline Visual',archetype:'Article',status:'planned',
+   ideation:'Diagram the end-to-end detection pipeline — log source, normalisation, correlation, alert, triage. Shareable and referenceable.',
+   primary:'detection pipeline diagram',secondary:'threat detection flow visual, SIEM detection architecture, SOC detection pipeline'},
+  {id:'w6thu',day:'Wk6 · Thu',title:'Neurosecurity Layers (Visual)',archetype:'Article',status:'planned',
+   ideation:'Visualize the security layers of a neurotech system — device, signal, data, application, and regulatory. Novel conceptual framework.',
+   primary:'neurosecurity architecture layers',secondary:'BCI security stack model, neural security design, neurotech security architecture'},
+  {id:'w6fri',day:'Wk6 · Fri',title:'Security Visual of the Week',archetype:'Roundup',status:'planned',
+   ideation:'Curate and comment on the most useful security diagram or infographic published this week. Build curation authority.',
+   primary:'cybersecurity infographic weekly',secondary:'security diagram spotlight, infosec visual roundup, weekly security graphic'},
+  // ── WEEK 7 — STATS & INSIGHTS ──────────────────────────────────────────
+  {id:'w7mon',day:'Wk7 · Mon',title:'SIEM Cost vs Value: The Real Numbers',archetype:'Article',status:'planned',
+   ideation:'Break down the true cost of SIEM — licensing, ingestion, staffing, tuning — and frame it against measurable security outcomes.',
+   primary:'SIEM cost analysis',secondary:'SIEM ROI calculation, security investment return, SIEM total cost of ownership'},
+  {id:'w7tue',day:'Wk7 · Tue',title:'Neurotechnology Market Growth: The Stats',archetype:'Article',status:'planned',
+   ideation:'Present neurotech market growth data — TAM, CAGR, investment trends, and key players. Establish the scale of the coming wave.',
+   primary:'neurotechnology market growth statistics',secondary:'neurotech industry data, BCI market size 2025, brain computer interface investment'},
+  {id:'w7wed',day:'Wk7 · Wed',title:'SOC Alert Fatigue: The Numbers',archetype:'Article',status:'planned',
+   ideation:'Quantify the alert fatigue problem — missed alerts, analyst burnout rates, MTTD/MTTR data. Make the case for detection quality over quantity.',
+   primary:'SOC alert fatigue statistics',secondary:'security alert overload data, SIEM alert volume problem, analyst burnout cybersecurity'},
+  {id:'w7thu',day:'Wk7 · Thu',title:'Brain Data Privacy: Key Statistics',archetype:'Article',status:'planned',
+   ideation:'Surface the most compelling neural data privacy statistics — breach risk, regulatory gaps, consumer awareness. Build the urgency case.',
+   primary:'brain data privacy statistics',secondary:'neural data regulations gaps, neurotechnology privacy research, BCI data risk data'},
+  {id:'w7fri',day:'Wk7 · Fri',title:'Numbers That Matter This Week',archetype:'Roundup',status:'planned',
+   ideation:'Weekly data-driven roundup — key statistics, breach numbers, market moves. Quantitative pulse content for data-driven readers.',
+   primary:'cybersecurity statistics weekly',secondary:'infosec data points roundup, weekly security numbers, security industry stats'},
+  // ── WEEK 8 — COMPARISON ────────────────────────────────────────────────
+  {id:'w8mon',day:'Wk8 · Mon',title:'SIEM vs XDR vs EDR: The Real Difference',archetype:'Article',status:'planned',
+   ideation:'Objective architectural comparison of SIEM, XDR, and EDR — scope, data model, detection approach, and use cases. Reference-grade content.',
+   primary:'SIEM vs XDR vs EDR',secondary:'XDR comparison guide, EDR vs SIEM differences, security tool selection framework'},
+  {id:'w8tue',day:'Wk8 · Tue',title:'EEG vs fMRI: A Security Context Comparison',archetype:'Article',status:'planned',
+   ideation:'Compare EEG and fMRI across security-relevant dimensions — data fidelity, portability, attack surface, and privacy implications.',
+   primary:'EEG vs fMRI security comparison',secondary:'brain scanning security implications, neural interface types compared, EEG fMRI privacy'},
+  {id:'w8wed',day:'Wk8 · Wed',title:'Splunk vs ELK: An Architecture View',archetype:'Article',status:'planned',
+   ideation:'Side-by-side architectural comparison of Splunk and the ELK stack — deployment model, query language, scalability, and TCO.',
+   primary:'Splunk vs ELK Stack',secondary:'Elasticsearch vs Splunk comparison, SIEM platform selection, log management tools compared'},
+  {id:'w8thu',day:'Wk8 · Thu',title:'Neurotech vs Traditional Biometrics',archetype:'Article',status:'planned',
+   ideation:'Compare neural authentication (EEG brainprints) vs fingerprint, face, and iris — precision, spoofability, and privacy trade-offs.',
+   primary:'neurotech biometrics comparison',secondary:'brain biometrics vs fingerprint, neural authentication methods, BCI vs traditional biometrics'},
+  {id:'w8fri',day:'Wk8 · Fri',title:'Tool Comparison of the Week',archetype:'Roundup',status:'planned',
+   ideation:'Weekly head-to-head tool comparison — chosen for recency and community interest. Practical guidance for security practitioners.',
+   primary:'cybersecurity tool comparison weekly',secondary:'security software comparison roundup, infosec tools review, weekly tool analysis'},
+  // ── WEEK 9 — FAILURE ANALYSIS ──────────────────────────────────────────
+  {id:'w9mon',day:'Wk9 · Mon',title:'Why SOCs Fail in Year 1',archetype:'Case Study',status:'planned',
+   ideation:'Dissect the most common Year 1 SOC failure modes — under-tuned rules, staffing gaps, tool sprawl, lack of runbooks. Painful and honest.',
+   primary:'SOC failure year one',secondary:'security operations challenges, SOC implementation pitfalls, new SOC common mistakes'},
+  {id:'w9tue',day:'Wk9 · Tue',title:'Where Neurotech Will Fail First',archetype:'Case Study',status:'planned',
+   ideation:'Predict the first critical failure point in mass neurotech adoption — signal integrity, data custody, or regulatory collapse.',
+   primary:'neurotechnology failure risks',secondary:'BCI failure analysis, neurotech vulnerabilities prediction, neural interface failure modes'},
+  {id:'w9wed',day:'Wk9 · Wed',title:'Why Detection Rules Break',archetype:'Case Study',status:'planned',
+   ideation:'Root cause analysis of detection rule degradation — environment drift, log source changes, and threshold rot. Practitioner-essential.',
+   primary:'detection rule failures',secondary:'SIEM rule tuning problems, false positive management, detection engineering decay'},
+  {id:'w9thu',day:'Wk9 · Thu',title:'Neuro Data Misuse Scenarios',archetype:'Case Study',status:'planned',
+   ideation:'Model concrete misuse scenarios for neural data — employer monitoring, insurance profiling, state surveillance, advertising manipulation.',
+   primary:'neural data misuse scenarios',secondary:'brain data exploitation risks, BCI data abuse cases, neurotechnology ethics violations'},
+  {id:'w9fri',day:'Wk9 · Fri',title:'Failure Breakdown This Week',archetype:'Roundup',status:'planned',
+   ideation:'Weekly failure post-mortem roundup — most instructive security failure from the past week with root cause and defender lessons.',
+   primary:'cybersecurity failure breakdown weekly',secondary:'security incident post-mortem roundup, infosec failure analysis, weekly breach review'},
+  // ── WEEK 10 — FUTURE TRENDS ────────────────────────────────────────────
+  {id:'w10mon',day:'Wk10 · Mon',title:'The Future of SIEM: AI-Driven Detection',archetype:'Opinion',status:'planned',
+   ideation:'Forecast how AI transforms SIEM — from rule-based detection to behavioural baselines, autonomous response, and co-pilot analysts.',
+   primary:'AI-driven SIEM future',secondary:'next generation SIEM technology, AI security analytics, future of threat detection'},
+  {id:'w10tue',day:'Wk10 · Tue',title:'The Future of Brain-Computer Interfaces',archetype:'Opinion',status:'planned',
+   ideation:'Map the BCI technology roadmap — consumer devices, therapeutic applications, and the convergence with AI. Security implications of each wave.',
+   primary:'future of brain computer interfaces',secondary:'BCI technology trends, neurotech roadmap 2025, brain interface next generation'},
+  {id:'w10wed',day:'Wk10 · Wed',title:'Autonomous Detection Systems',archetype:'Opinion',status:'planned',
+   ideation:'Explore the trajectory toward fully autonomous threat detection — AI correlation, SOAR integration, and the role of human analysts.',
+   primary:'autonomous threat detection systems',secondary:'AI detection automation, machine learning security operations, automated SIEM future'},
+  {id:'w10thu',day:'Wk10 · Thu',title:'Neurosecurity Regulations: What Is Coming',archetype:'Opinion',status:'planned',
+   ideation:'Forecast the regulatory landscape for neurotechnology — emerging frameworks, GDPR extension proposals, and neuro rights legislation.',
+   primary:'neurosecurity regulations future',secondary:'brain data laws emerging, neural privacy regulation, neurotech compliance outlook 2025'},
+  {id:'w10fri',day:'Wk10 · Fri',title:'What Is Coming Next in Security',archetype:'Roundup',status:'planned',
+   ideation:'Forward-looking weekly roundup — signals, announcements, and trend lines pointing to what security teams should prepare for.',
+   primary:'cybersecurity upcoming trends',secondary:'infosec predictions roundup, emerging threats weekly, future security landscape'},
+  // ── WEEK 11 — CHECKLIST ────────────────────────────────────────────────
+  {id:'w11mon',day:'Wk11 · Mon',title:'SOC Design Checklist',archetype:'Tutorial',status:'planned',
+   ideation:'Definitive SOC design checklist — 40+ items covering infrastructure, tooling, staffing, runbooks, and metrics. High bookmark and save rate.',
+   primary:'SOC design checklist',secondary:'security operations center requirements, SOC setup checklist, SOC build guide'},
+  {id:'w11tue',day:'Wk11 · Tue',title:'Neurotech Risk Checklist',archetype:'Tutorial',status:'planned',
+   ideation:'Practical risk checklist for evaluating a neurotech deployment — data classification, consent, access control, and regulatory alignment.',
+   primary:'neurotech risk checklist',secondary:'BCI security assessment checklist, neural interface risk evaluation, neurotechnology compliance'},
+  {id:'w11wed',day:'Wk11 · Wed',title:'Splunk Deployment Checklist',archetype:'Tutorial',status:'planned',
+   ideation:'Pre-go-live Splunk checklist — licensing, forwarder coverage, index strategy, alerting baseline, and performance benchmarks.',
+   primary:'Splunk deployment checklist',secondary:'Splunk setup checklist, SIEM deployment guide, Splunk best practices list'},
+  {id:'w11thu',day:'Wk11 · Thu',title:'Brain Data Protection Checklist',archetype:'Tutorial',status:'planned',
+   ideation:'Security and privacy checklist for handling neural data — encryption, retention, consent, breach response, and audit requirements.',
+   primary:'brain data protection checklist',secondary:'neural data security controls checklist, BCI data governance, neurotechnology compliance checklist'},
+  {id:'w11fri',day:'Wk11 · Fri',title:'Weekly Action Checklist',archetype:'Roundup',status:'planned',
+   ideation:'Weekly security action checklist — 5 things every security professional should do or review this week. High recurring engagement.',
+   primary:'weekly cybersecurity action checklist',secondary:'weekly security tasks, infosec to-do list, security team weekly checklist'},
+  // ── WEEK 12 — STORY / NARRATIVE ────────────────────────────────────────
+  {id:'w12mon',day:'Wk12 · Mon',title:'A Day in the Life of a SOC Analyst',archetype:'Article',status:'planned',
+   ideation:'Narrative walkthrough of a real SOC shift — alert triage, false positives, escalations, and end-of-shift retrospective. Humanises the profession.',
+   primary:'SOC analyst day in the life',secondary:'security analyst career story, SOC analyst role explained, cybersecurity analyst experience'},
+  {id:'w12tue',day:'Wk12 · Tue',title:'Future Story: The First Brain-Hack',archetype:'Article',status:'planned',
+   ideation:'Speculative near-future narrative of the first high-profile BCI cyberattack — told as investigative journalism. Shareable and provocative.',
+   primary:'brain hacking scenario future',secondary:'BCI cyberattack story, neural hacking narrative, neurosecurity fiction scenario'},
+  {id:'w12wed',day:'Wk12 · Wed',title:"A Detection Engineer's Journey",archetype:'Article',status:'planned',
+   ideation:'Career narrative of a detection engineer — from first rule to full detection programme. Inspiration and practical guidance combined.',
+   primary:'detection engineer career path',secondary:'detection engineering journey, SOC career story, security engineer experience'},
+  {id:'w12thu',day:'Wk12 · Thu',title:'Neurotech Ethical Dilemma Story',archetype:'Article',status:'planned',
+   ideation:'Narrative exploring an ethical dilemma in neurotech — employer EEG monitoring, consent withdrawal, or data monetisation without knowledge.',
+   primary:'neurotech ethics story',secondary:'brain data ethical dilemma, BCI ethics narrative, neurotechnology moral questions'},
+  {id:'w12fri',day:'Wk12 · Fri',title:'Story of the Week',archetype:'Roundup',status:'planned',
+   ideation:'Weekly narrative spotlight — a human story from the security world, researcher profile, or incident told from a first-person angle.',
+   primary:'cybersecurity story of the week',secondary:'infosec human interest, security analyst spotlight, weekly security narrative'},
+];
+
+// Seed on first load (Supabase) — handled in init()
+const WEEK_THEMES = {
+  'Wk1':'Deep Dive','Wk2':'How-To','Wk3':'Myth Busting','Wk4':'Case Study',
+  'Wk5':'Framework','Wk6':'Infographic','Wk7':'Stats & Insights','Wk8':'Comparison',
+  'Wk9':'Failure Analysis','Wk10':'Future Trends','Wk11':'Checklist','Wk12':'Story'
+};
+
+let modalPostId = null;
+
+// ══════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  const idx = ['planner','kanban','analytics','strategy'].indexOf(name);
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='kanban') renderKanban();
+  if(name==='analytics') renderAnalytics();
+  if(name==='strategy') renderStrategy();
+}
+
+// ══════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════
+function updateClock() {
+  const d = new Date();
+  document.getElementById('topbar-clock').textContent =
+    d.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short'}) + '  ' +
+    d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(updateClock,1000); updateClock();
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ══════════════════════════════════════════════
+// TAB 1 — PLANNER
+// ══════════════════════════════════════════════
+function toggleForm() {
+  const f = document.getElementById('post-form');
+  if (f.classList.contains('open')) {
+    resetForm();
+  } else {
+    document.getElementById('f-edit-id').value = '';
+    document.getElementById('form-mode-label').textContent = 'NEW ENTRY';
+    document.getElementById('form-save-btn').textContent = 'Save Post';
+    f.classList.add('open');
+  }
+}
+
+function resetForm() {
+  document.getElementById('f-edit-id').value = '';
+  document.getElementById('f-day').value = '';
+  document.getElementById('f-title').value = '';
+  document.getElementById('f-ideation').value = '';
+  document.getElementById('f-primary').value = '';
+  document.getElementById('f-secondary').value = '';
+  document.getElementById('f-archetype').value = 'Article';
+  document.getElementById('f-status').value = 'planned';
+  document.getElementById('form-mode-label').textContent = 'NEW ENTRY';
+  document.getElementById('form-save-btn').textContent = 'Save Post';
+  document.getElementById('post-form').classList.remove('open');
+}
+
+function editPost(id) {
+  const p = posts.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('f-edit-id').value = id;
+  document.getElementById('f-day').value = p.day || '';
+  document.getElementById('f-title').value = p.title || '';
+  document.getElementById('f-archetype').value = p.archetype || 'Article';
+  document.getElementById('f-status').value = p.status || 'planned';
+  document.getElementById('f-ideation').value = p.ideation || '';
+  document.getElementById('f-primary').value = p.primary || '';
+  document.getElementById('f-secondary').value = p.secondary || '';
+  document.getElementById('form-mode-label').textContent = 'EDIT ENTRY';
+  document.getElementById('form-save-btn').textContent = 'Update Post';
+  const f = document.getElementById('post-form');
+  f.classList.add('open');
+  f.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function savePost() {
+  const editId = document.getElementById('f-edit-id').value;
+  const day = document.getElementById('f-day').value.trim();
+  const title = document.getElementById('f-title').value.trim();
+  const archetype = document.getElementById('f-archetype').value;
+  const status = document.getElementById('f-status').value;
+  const ideation = document.getElementById('f-ideation').value.trim();
+  const primary = document.getElementById('f-primary').value.trim();
+  const secondary = document.getElementById('f-secondary').value.trim();
+  if (!title) { toast('Post title is required'); return; }
+
+  if (editId) {
+    const p = posts.find(x => x.id === editId);
+    if (p) { Object.assign(p, {day, title, archetype, status, ideation, primary, secondary}); }
+    save({post: posts.find(x=>x.id===editId)});
+    toast('Post updated ✓');
+  } else {
+    const id = Date.now().toString();
+    const newPost = {id, day, title, archetype, status, ideation, primary, secondary};
+    posts.push(newPost);
+    analytics[id] = {impressions:'', clicks:'', ctr:'', pos:'', notes:''};
+    save({post: newPost});
+    toast('Post added ✓');
+  }
+  renderPosts(); renderKanban(); renderAnalytics(); renderStrategy();
+  resetForm();
+}
+
+function addPost() { savePost(); } // legacy alias
+
+function exportCSV() {
+  const headers = ['Day','Title','Archetype','Status','Ideation','Primary KW','Secondary KWs','Impressions','Clicks','CTR%','Avg Position','Notes'];
+  const rows = posts.map(p => {
+    const a = analytics[p.id] || {};
+    return [p.day, p.title, p.archetype, p.status, p.ideation, p.primary, p.secondary,
+            a.impressions, a.clicks, a.ctr, a.pos, a.notes]
+      .map(v => `"${(v || '').toString().replace(/"/g, '""')}"`);
+  });
+  const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = 'cnx-posts-' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  toast('CSV exported ✓');
+}
+
+function exportJSON() {
+  const data = {posts, analytics, clusters, kgaps, backlog};
+  const a = document.createElement('a');
+  a.href = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(data, null, 2));
+  a.download = 'cnx-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  toast('JSON backup exported ✓');
+}
+
+function importJSON() {
+  document.getElementById('import-file').click();
+}
+
+function handleImport(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data.posts && Array.isArray(data.posts)) {
+        posts = data.posts;
+        analytics = data.analytics || {};
+        clusters = data.clusters || clusters;
+        kgaps = data.kgaps || kgaps;
+        backlog = data.backlog || backlog;
+        save();
+        renderPosts(); renderKanban(); renderAnalytics(); renderStrategy();
+        toast('Imported ' + posts.length + ' posts ✓');
+      } else {
+        toast('Invalid JSON: missing "posts" array');
+      }
+    } catch(err) { toast('JSON parse error'); }
+  };
+  reader.readAsText(file);
+  input.value = '';
+}
+
+function deletePost(id) {
+  if (!confirm('Delete this post?')) return;
+  posts = posts.filter(p=>p.id!==id);
+  delete analytics[id];
+  save({delPost: id}); renderPosts(); renderKanban(); renderAnalytics(); renderStrategy();
+  toast('Post removed');
+}
+
+function renderPosts() {
+  const search = document.getElementById('search-posts').value.toLowerCase();
+  const arch = document.getElementById('filter-archetype').value;
+  const wk = document.getElementById('filter-week').value;
+  let filtered = posts.filter(p => {
+    const matchSearch = !search || p.title.toLowerCase().includes(search) ||
+      (p.primary||'').toLowerCase().includes(search) ||
+      (p.secondary||'').toLowerCase().includes(search);
+    const matchArch = !arch || p.archetype === arch;
+    const matchWk = !wk || (p.day||'').startsWith(wk);
+    return matchSearch && matchArch && matchWk;
+  });
+  document.getElementById('post-count-badge').textContent = filtered.length + ' post' + (filtered.length!==1?'s':'');
+  const list = document.getElementById('post-list');
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty-state"><div class="icon">◈</div><div>No posts match. Hit <strong>+ New Post</strong> to add one.</div></div>';
+    return;
+  }
+
+  // Group by week
+  const groups = {};
+  filtered.forEach(p => {
+    const wkKey = (p.day||'').split(' ')[0] || 'Other';
+    if (!groups[wkKey]) groups[wkKey] = [];
+    groups[wkKey].push(p);
+  });
+
+  const statusLabels = {planned:'Planned',draft:'Draft',progress:'In Progress',live:'Live'};
+
+  let html = '';
+  Object.entries(groups).forEach(([wkKey, gposts]) => {
+    const theme = WEEK_THEMES[wkKey] || '';
+    html += `<div class="week-group-header">
+      <span class="week-group-label">${wkKey.replace('Wk','Week ')}</span>
+      ${theme ? `<span class="week-group-theme">— ${theme}</span>` : ''}
+      <span class="week-group-count">${gposts.length} post${gposts.length!==1?'s':''}</span>
+    </div>`;
+    gposts.forEach(p => {
+      const secondaryTags = (p.secondary||'').split(',').map(s=>s.trim()).filter(Boolean)
+        .map(s=>`<span class="tag secondary">${s}</span>`).join('');
+      const dayPart = (p.day||'').split('·')[1]?.trim() || p.day || '—';
+      html += `<div class="post-item">
+        <div>
+          <div class="post-day" style="font-size:14px;">${dayPart}</div>
+          <div class="post-day-label">Publish</div>
+        </div>
+        <div>
+          <div class="post-name">${p.title}</div>
+          ${p.ideation ? `<div class="post-ideation">${p.ideation}</div>` : ''}
+          <div class="post-tags" style="margin-top:5px;">
+            <span class="tag archetype">${p.archetype}</span>
+            ${p.primary ? `<span class="tag primary">${p.primary}</span>` : ''}
+            ${secondaryTags}
+          </div>
+        </div>
+        <div class="post-actions">
+          <span class="status ${p.status}">${statusLabels[p.status]}</span>
+          <button class="btn sm" onclick="editPost('${p.id}')">✎ Edit</button>
+          <button class="btn sm danger" onclick="deletePost('${p.id}')">✕</button>
+        </div>
+      </div>`;
+    });
+  });
+  list.innerHTML = html;
+}
+
+function toggleRhythm() {
+  const card = document.getElementById('rhythm-card');
+  card.style.display = card.style.display === 'none' ? 'block' : 'none';
+}
+
+// ══════════════════════════════════════════════
+// TAB 2 — KANBAN
+// ══════════════════════════════════════════════
+function renderKanban() {
+  const statusColors = {planned:'var(--accent3)',draft:'var(--muted)',progress:'var(--accent)',live:'var(--accent2)'};
+  const statusEmoji = {planned:'📋',draft:'✏️',progress:'⚡',live:'🟢'};
+  ['planned','draft','progress','live'].forEach(s=>{
+    const col = posts.filter(p=>p.status===s);
+    document.getElementById('k-count-'+s).textContent = col.length;
+    document.getElementById('k-'+s).innerHTML = col.length ? col.map(p=>{
+      const kw = p.primary ? `<div style="font-family:var(--mono);font-size:9px;color:var(--accent);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${p.primary}">🔑 ${p.primary}</div>` : '';
+      return `<div class="kcard" onclick="openModal('${p.id}')" title="Click to edit">
+        <div style="width:100%;height:2px;background:${statusColors[s]};border-radius:2px;margin-bottom:10px;opacity:0.6;"></div>
+        <div class="kcard-title">${p.title}</div>
+        <div class="kcard-meta">
+          <span class="kcard-day">${(p.day||'—').replace(' · ',' ')}</span>
+          <span class="kcard-arch">${p.archetype}</span>
+        </div>
+        ${kw}
+      </div>`;
+    }).join('') :
+    `<div style="font-family:var(--mono);font-size:10px;color:var(--muted);text-align:center;padding:24px 0;border:1px dashed var(--border);border-radius:var(--radius);">No posts here yet</div>`;
+  });
+}
+
+
+function openModal(id) {
+  modalPostId = id;
+  const p = posts.find(x=>x.id===id);
+  if (!p) return;
+  const a = analytics[p.id] || {};
+  document.getElementById('modal-week-label').textContent = (p.day||'').split('·')[0].trim() + ' · ' + (p.archetype||'');
+  document.getElementById('modal-post-title').textContent = p.title;
+  document.getElementById('modal-status').value = p.status;
+  document.getElementById('modal-archetype').value = p.archetype || 'Article';
+  document.getElementById('modal-primary').value = p.primary || '';
+  document.getElementById('modal-secondary').value = p.secondary || '';
+  document.getElementById('modal-ideation').value = p.ideation || '';
+  document.getElementById('modal-impressions').value = a.impressions || '';
+  document.getElementById('modal-clicks').value = a.clicks || '';
+  document.getElementById('modal-ctr').value = a.ctr || '';
+  document.getElementById('modal-pos').value = a.pos || '';
+  document.getElementById('modal-anotes').value = a.notes || '';
+  document.getElementById('status-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('status-modal').classList.remove('open'); }
+function applyModal() {
+  const p = posts.find(x=>x.id===modalPostId);
+  if (!p) return;
+  p.status = document.getElementById('modal-status').value;
+  p.archetype = document.getElementById('modal-archetype').value;
+  p.primary = document.getElementById('modal-primary').value.trim();
+  p.secondary = document.getElementById('modal-secondary').value.trim();
+  p.ideation = document.getElementById('modal-ideation').value.trim();
+  if (!analytics[p.id]) analytics[p.id] = {};
+  analytics[p.id].impressions = document.getElementById('modal-impressions').value;
+  analytics[p.id].clicks = document.getElementById('modal-clicks').value;
+  analytics[p.id].ctr = document.getElementById('modal-ctr').value;
+  analytics[p.id].pos = document.getElementById('modal-pos').value;
+  analytics[p.id].notes = document.getElementById('modal-anotes').value;
+  save(); renderKanban(); renderPosts(); renderAnalytics(); renderStrategy();
+  closeModal(); toast('Post updated ✓');
+}
+function applyStatus() { applyModal(); } // legacy alias
+function deletePostFromModal() {
+  if (!confirm('Delete this post?')) return;
+  posts = posts.filter(p=>p.id!==modalPostId);
+  delete analytics[modalPostId];
+  save({delPost: modalPostId}); renderKanban(); renderPosts(); renderAnalytics(); renderStrategy();
+  closeModal(); toast('Post deleted');
+}
+
+// ══════════════════════════════════════════════
+// TAB 3 — ANALYTICS
+// ══════════════════════════════════════════════
+function renderAnalytics() {
+  const livePosts = posts.filter(p=>p.status==='live');
+  document.getElementById('m-live').textContent = livePosts.length;
+  let totalImpr=0, totalClicks=0, posSum=0, posCount=0, ctrVals=[];
+  livePosts.forEach(p=>{
+    const a = analytics[p.id]||{};
+    if(a.impressions) totalImpr += parseInt(a.impressions)||0;
+    if(a.clicks) totalClicks += parseInt(a.clicks)||0;
+    if(a.pos) { posSum += parseFloat(a.pos)||0; posCount++; }
+    if(a.ctr) ctrVals.push(parseFloat(a.ctr)||0);
+  });
+  document.getElementById('m-impressions').textContent = totalImpr>0 ? totalImpr.toLocaleString() : '0';
+  document.getElementById('m-clicks').textContent = totalClicks>0 ? totalClicks.toLocaleString() : '0';
+  document.getElementById('m-ctr').textContent = ctrVals.length ? (ctrVals.reduce((a,b)=>a+b,0)/ctrVals.length).toFixed(1)+'%' : '—';
+  document.getElementById('m-pos').textContent = posCount ? (posSum/posCount).toFixed(1) : '—';
+
+  const maxImpr = Math.max(1,...posts.map(p=>parseInt((analytics[p.id]||{}).impressions||0)));
+  const body = document.getElementById('analytics-body');
+  if(!posts.length) {
+    body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);font-family:var(--mono);font-size:11px;padding:30px;">Add posts from Tab 1 to track analytics here.</td></tr>';
+    return;
+  }
+  body.innerHTML = posts.map(p=>{
+    const a = analytics[p.id]||{impressions:'',clicks:'',ctr:'',pos:'',notes:''};
+    const imprPct = Math.round(parseInt(a.impressions||0)/maxImpr*100);
+    const ctrNum = parseFloat(a.ctr||0);
+    const ctrClass = ctrNum>=3?'ctr-good':ctrNum>=1?'ctr-mid':'ctr-low';
+    return `<tr>
+      <td style="font-size:12px;font-weight:500;">${p.title}</td>
+      <td><span class="tag archetype" style="margin:0;">${p.archetype}</span></td>
+      <td><span class="status ${p.status}">${{planned:'Planned',draft:'Draft',progress:'In Progress',live:'Live'}[p.status]}</span></td>
+      <td><span style="font-family:var(--mono);font-size:10px;color:#b3abff;">${p.primary||'—'}</span></td>
+      <td>
+        <div class="bar-wrap">
+          <div class="bar-track"><div class="bar-fill" style="width:${imprPct}%;"></div></div>
+          <input class="editable" type="number" value="${a.impressions}" placeholder="0"
+            onchange="updateAnalytic('${p.id}','impressions',this.value);renderAnalytics();" style="width:70px;">
+        </div>
+      </td>
+      <td><input class="editable" type="number" value="${a.clicks}" placeholder="0" onchange="updateAnalytic('${p.id}','clicks',this.value);renderAnalytics();"></td>
+      <td><input class="editable ${ctrClass}" type="number" value="${a.ctr}" placeholder="0.0" step="0.1" onchange="updateAnalytic('${p.id}','ctr',this.value);renderAnalytics();" style="width:60px;"></td>
+      <td><input class="editable" type="number" value="${a.pos}" placeholder="—" step="0.1" onchange="updateAnalytic('${p.id}','pos',this.value);renderAnalytics();" style="width:60px;"></td>
+      <td><input class="editable" type="text" value="${a.notes||''}" placeholder="Notes…" onchange="updateAnalytic('${p.id}','notes',this.value);" style="width:100%;max-width:140px;"></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateAnalytic(id, field, value) {
+  if(!analytics[id]) analytics[id]={};
+  analytics[id][field]=value;
+  save();
+}
+
+// ══════════════════════════════════════════════
+// TAB 4 — STRATEGY
+// ══════════════════════════════════════════════
+function parsePostDate(dayStr) {
+  if (!dayStr) return null;
+  const parts = dayStr.trim().split(' ');
+  if (parts.length < 2) return null;
+  const d = parseInt(parts[0]);
+  const months = {Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11};
+  const m = months[parts[1]];
+  if (isNaN(d) || m === undefined) return null;
+  const now = new Date();
+  let date = new Date(now.getFullYear(), m, d);
+  if (date < now && (now - date) > 180*24*60*60*1000) date.setFullYear(now.getFullYear()+1);
+  return date;
+}
+
+function getWeekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function renderStrategy() {
+  // Cluster Map
+  const cm = document.getElementById('cluster-map');
+  const cyberClusters = ['SIEM & Log Management','SOC Design & Operations','Detection Engineering','Threat Intelligence'];
+  let clusterHTML = '';
+  let shownCyberHeader = false;
+  let shownNeuroHeader = false;
+  clusters.forEach((c,i) => {
+    const isCyber = cyberClusters.includes(c.name) || i < clusters.length/2;
+    if (!shownCyberHeader && (i === 0)) {
+      clusterHTML += `<div style="font-family:var(--mono);font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;padding:2px 0 6px;border-bottom:1px solid rgba(124,106,247,0.2);margin-bottom:6px;">⬡ Cybersecurity</div>`;
+      shownCyberHeader = true;
+    }
+    if (!shownNeuroHeader && i === Math.ceil(clusters.length/2)) {
+      clusterHTML += `<div style="font-family:var(--mono);font-size:9px;color:var(--accent2);text-transform:uppercase;letter-spacing:.6px;padding:8px 0 6px;border-bottom:1px solid rgba(79,209,170,0.2);margin-bottom:6px;margin-top:4px;">⬡ Neurotech</div>`;
+      shownNeuroHeader = true;
+    }
+    const pct = Math.min(100, Math.round(c.posts/c.target*100));
+    clusterHTML += `<div class="cluster-item">
+      <div class="cluster-head">
+        <span class="cluster-name">${c.name}</span>
+        <span style="display:flex;align-items:center;gap:6px;">
+          <input type="number" min="0" value="${c.posts}" title="Posts written" onchange="clusters[${i}].posts=parseInt(this.value)||0;save();renderStrategy();"
+            style="width:40px;padding:2px 6px;font-size:11px;font-family:var(--mono);text-align:center;background:var(--bg4);border:1px solid var(--border2);border-radius:4px;color:var(--text);">
+          <span style="font-family:var(--mono);font-size:10px;color:var(--muted);">/</span>
+          <input type="number" min="1" value="${c.target}" title="Target posts" onchange="clusters[${i}].target=parseInt(this.value)||1;save();renderStrategy();"
+            style="width:40px;padding:2px 6px;font-size:11px;font-family:var(--mono);text-align:center;background:var(--bg4);border:1px solid var(--border2);border-radius:4px;color:var(--muted);">
+          <button class="btn sm danger" onclick="clusters.splice(${i},1);save();renderStrategy();" title="Remove cluster" style="padding:2px 6px;font-size:10px;">✕</button>
+        </span>
+      </div>
+      <div class="cluster-progress" style="margin-top:6px;">
+        <div class="cluster-bar" style="width:${pct}%;background:${c.color};"></div>
+      </div>
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);margin-top:4px;">${pct}% to target</div>
+    </div>`;
+  });
+  cm.innerHTML = clusterHTML || `<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:10px 0;">No clusters yet. Hit <strong>+ Cluster</strong> to define a content theme.</div>`;
+
+  // Keyword Gaps
+  const kg = document.getElementById('kgap-list');
+  const cyberKws = ['SIEM','SOC','detection','Splunk','alert','threat','XDR','EDR'];
+  let kgHTML = '';
+  let shownKCyber = false, shownKNeuro = false;
+  kgaps.forEach((k,i) => {
+    const isCyber = cyberKws.some(w => k.kw.toLowerCase().includes(w.toLowerCase()));
+    if (!shownKCyber && isCyber) {
+      kgHTML += `<div style="font-family:var(--mono);font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;padding:2px 0 5px;border-bottom:1px solid rgba(124,106,247,0.2);margin-bottom:4px;">⬡ Cybersecurity</div>`;
+      shownKCyber = true;
+    }
+    if (!shownKNeuro && !isCyber) {
+      kgHTML += `<div style="font-family:var(--mono);font-size:9px;color:var(--accent2);text-transform:uppercase;letter-spacing:.6px;padding:8px 0 5px;border-bottom:1px solid rgba(79,209,170,0.2);margin-bottom:4px;">⬡ Neurotech</div>`;
+      shownKNeuro = true;
+    }
+    kgHTML += `<div class="kgap-item" title="Click × to remove once written">
+      <span class="kgap-keyword">${k.kw}</span>
+      <span class="kgap-vol">${k.vol}/mo</span>
+      <span class="kgap-diff diff-${k.diff}">${k.diff}</span>
+      <button class="btn sm danger" onclick="removeKGap(${i})" title="Remove — I've written this post" style="padding:2px 7px;font-size:10px;">✕</button>
+    </div>`;
+  });
+  kg.innerHTML = kgHTML || `<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:10px 0;">No keyword gaps tracked yet. Hit <strong>+ Keyword</strong> to add one.</div>`;
+
+  // 12-week cadence — data-driven from actual posts
+  const cadenceWrap = document.getElementById('cadence-wrap');
+  const days = ['M','T','W','T','F','S','S'];
+  const today = new Date(); today.setHours(0,0,0,0);
+  const weekStart = getWeekStart(today);
+
+  // Map posts to {week, dow} slots
+  const postDots = {};
+  posts.forEach(p => {
+    const date = parsePostDate(p.day);
+    if (!date) return;
+    const diffMs = date - weekStart;
+    const diffDays = Math.floor(diffMs / (24*60*60*1000));
+    if (diffDays < 0 || diffDays >= 12*7) return;
+    const w = Math.floor(diffDays / 7);
+    const d = diffDays % 7;
+    postDots[`${w}-${d}`] = p.status === 'live' ? 'published' : 'has-post';
+  });
+
+  let html = `<div style="display:grid;grid-template-columns:32px repeat(7,1fr);gap:4px;align-items:center;">
+    <div></div>${days.map(d=>`<div class="cadence-day-label">${d}</div>`).join('')}
+  </div>`;
+  for (let w=0; w<12; w++) {
+    html += `<div style="display:grid;grid-template-columns:32px repeat(7,1fr);gap:4px;align-items:center;">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--muted);text-align:right;padding-right:6px;">W${w+1}</div>`;
+    for (let d=0; d<7; d++) {
+      const cls = postDots[`${w}-${d}`] || '';
+      html += `<div class="cadence-cell ${cls}" title="${cls==='published'?'Published':cls==='has-post'?'Planned/In Progress':''}">${cls?'●':''}</div>`;
+    }
+    html += '</div>';
+  }
+  cadenceWrap.innerHTML = html;
+
+  // Pillars — includes Roundup
+  const archetypes = ['Article','Deep-Dive','Tutorial','Architecture','Opinion','Case Study','Roundup'];
+  const counts = {};
+  archetypes.forEach(a => counts[a]=0);
+  posts.forEach(p => { if (counts[p.archetype] !== undefined) counts[p.archetype]++; });
+  const colors = ['var(--accent)','var(--accent2)','var(--accent3)','var(--accent4)','#a78bfa','#34d399','#f472b6'];
+  document.getElementById('pillars-wrap').innerHTML = archetypes.map((a,i)=>{
+    const pct = Math.round(counts[a]/Math.max(1,posts.length)*100);
+    return `<div class="pillar-item">
+      <div class="pillar-name">${a}</div>
+      <div class="pillar-bar-track"><div class="pillar-bar-fill" style="width:${pct}%;background:${colors[i]};"></div></div>
+      <div class="pillar-count">${counts[a]} post${counts[a]!==1?'s':''} · ${pct}%</div>
+    </div>`;
+  }).join('');
+
+  // Velocity — posts published/planned per week (last 8 weeks)
+  const weekCounts = Array(8).fill(0);
+  posts.forEach(p => {
+    const date = parsePostDate(p.day);
+    if (!date) return;
+    const diffMs = weekStart - date;
+    const weeksAgo = Math.floor(diffMs / (7*24*60*60*1000));
+    if (weeksAgo >= 0 && weeksAgo < 8) weekCounts[7 - weeksAgo]++;
+    else if (weeksAgo < 0) {
+      // upcoming — count in current week slot
+      const fwks = Math.floor(-diffMs / (7*24*60*60*1000));
+      if (fwks === 0) weekCounts[7]++;
+    }
+  });
+  const maxV = Math.max(1, ...weekCounts);
+  document.getElementById('velocity-chart').innerHTML = weekCounts.map((v,i)=>`
+    <div class="v-bar-wrap">
+      <div class="v-bar" style="height:${Math.round(v/maxV*70)}px;" title="${v} post${v!==1?'s':''}"></div>
+      <div class="v-label">W${i-7===0?'now':i-7>0?'+'+( i-7):i-7}</div>
+    </div>`).join('');
+
+  // Backlog
+  const sorted = [...backlog].sort((a,b)=>b.score-a.score);
+  const scoreLabel = {9:'🔥 Hot',7:'↑ High',5:'~ Mid',3:'↓ Low'};
+  const cyberTerms = ['SOC','SIEM','detection','alert','threat','Splunk','zero trust','playbook','log','hunt','rule','metric','analyst','splunk'];
+  let blHTML = '';
+  let shownBCyber = false, shownBNeuro = false;
+  sorted.forEach((it,i) => {
+    const originalIdx = backlog.indexOf(it);
+    const isCyber = cyberTerms.some(w => it.text.toLowerCase().includes(w.toLowerCase()));
+    if (!shownBCyber && isCyber) {
+      blHTML += `<div style="font-family:var(--mono);font-size:9px;color:var(--accent);text-transform:uppercase;letter-spacing:.6px;padding:4px 0 6px;border-bottom:1px solid rgba(124,106,247,0.2);margin-bottom:4px;">⬡ Cybersecurity ideas</div>`;
+      shownBCyber = true;
+    }
+    if (!shownBNeuro && !isCyber) {
+      blHTML += `<div style="font-family:var(--mono);font-size:9px;color:var(--accent2);text-transform:uppercase;letter-spacing:.6px;padding:8px 0 6px;border-bottom:1px solid rgba(79,209,170,0.2);margin-bottom:4px;">⬡ Neurotech ideas</div>`;
+      shownBNeuro = true;
+    }
+    blHTML += `<div class="backlog-item">
+      <span class="backlog-rank">${i+1}</span>
+      <span class="backlog-text">${it.text}</span>
+      <span class="backlog-score" title="Priority score">${scoreLabel[it.score]||it.score}</span>
+      <button class="btn sm" onclick="promoteBacklog('${it.text.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')" title="Promote to Tab 1 as a new post" style="color:var(--accent2);border-color:rgba(79,209,170,0.3);">↑ Use</button>
+      <button class="btn sm danger" onclick="removeBacklog(${originalIdx})" title="Remove idea">✕</button>
+    </div>`;
+  });
+  document.getElementById('backlog-list').innerHTML = blHTML || '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:10px 0;">No ideas yet — type one above and hit <strong>Add to backlog</strong>.</div>';
+}
+
+function addCluster() {
+  const name = prompt('Cluster name (e.g. "Detection Engineering" or "Neural Data Privacy"):');
+  if(!name) return;
+  const target = parseInt(prompt('Target number of posts for this cluster:')||'6')||6;
+  const colors = ['var(--accent)','var(--accent2)','var(--accent3)','var(--accent4)','#a78bfa','#34d399','#818cf8','#f472b6'];
+  clusters.push({name, posts:0, target, color:colors[clusters.length%colors.length]});
+  save(); renderStrategy();
+}
+function addKGap() {
+  const kw = prompt('Keyword you should be ranking for:');
+  if(!kw) return;
+  const vol = prompt('Estimated monthly search volume (e.g. 1.2K):')||'?';
+  const diff = prompt('Difficulty: easy / med / hard')||'med';
+  kgaps.unshift({kw, vol, diff:['easy','med','hard'].includes(diff)?diff:'med'});
+  save(); renderStrategy();
+}
+function removeKGap(i) {
+  kgaps.splice(i,1);
+  save(); renderStrategy();
+}
+function addBacklogItem() {
+  const text = document.getElementById('backlog-input').value.trim();
+  const score = parseInt(document.getElementById('backlog-score').value);
+  if(!text) { toast('Enter an idea first'); return; }
+  backlog.push({text, score});
+  document.getElementById('backlog-input').value='';
+  save(); renderStrategy();
+  toast('Idea added to backlog ✓');
+}
+function removeBacklog(idx) {
+  backlog.splice(idx,1);
+  save(); renderStrategy();
+}
+function promoteBacklog(text) {
+  switchTab('planner');
+  document.getElementById('f-edit-id').value = '';
+  document.getElementById('form-mode-label').textContent = 'NEW ENTRY FROM BACKLOG';
+  document.getElementById('form-save-btn').textContent = 'Save Post';
+  document.getElementById('f-title').value = text;
+  document.getElementById('post-form').classList.add('open');
+  document.getElementById('post-form').scrollIntoView({behavior:'smooth',block:'start'});
+  toast('Idea promoted to new post form ✓');
+}
+
+// ══════════════════════════════════════════════
+// RENDER ALL (used by realtime callbacks)
+// ══════════════════════════════════════════════
+function renderAll() {
+  renderPosts();
+  renderKanban();
+  renderAnalytics();
+  renderStrategy();
+}
+
+// ══════════════════════════════════════════════
+// INIT — boot sequence
+// ══════════════════════════════════════════════
+async function init() {
+  setSyncStatus('connecting');
+
+  // Always render something immediately — use localStorage or DEFAULT_POSTS
+  if (!posts.length) {
+    posts = DEFAULT_POSTS.map(p => ({...p}));
+    posts.forEach(p => { if (!analytics[p.id]) analytics[p.id] = {impressions:'',clicks:'',ctr:'',pos:'',notes:''}; });
+  }
+  renderAll();
+
+  // Now try Supabase
+  try {
+    const loaded = await dbLoadAll();
+    if (loaded) {
+      await seedIfEmpty();
+      await dbLoadAll();
+      renderAll();
+      subscribeRealtime();
+    } else {
+      setSyncStatus('offline');
+      toast('Supabase unreachable — check tables exist. Using defaults.');
+    }
+  } catch(e) {
+    console.error('init error:', e.message || JSON.stringify(e));
+    setSyncStatus('offline');
+    toast('Offline — using local data');
+  }
+}
+
+init();
+</script>
+</body>
+</html>
