@@ -1983,7 +1983,7 @@ function liCopyPrompt() {
   const prompt = `You are an expert LinkedIn content writer for CyberNeurix — a personal brand covering SIEM, SOC, detection engineering, brain-computer interfaces, and neural data privacy.
 
 Write a LinkedIn post with these specs:
-- Format: ${liSelectedFormat.replace(/-/g,' ')}
+- Format: ${FORMAT_PROMPTS[liSelectedFormat]}
 - Tone: ${liSelectedTone}
 - Audience: ${liSelectedAud}
 - Length: 1,200–1,900 characters
