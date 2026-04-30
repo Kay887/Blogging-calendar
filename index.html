@@ -1573,7 +1573,7 @@ function applyModal() {
   analytics[p.id].ctr         = document.getElementById('modal-ctr').value;
   analytics[p.id].pos         = document.getElementById('modal-pos').value;
   analytics[p.id].notes       = document.getElementById('modal-anotes').value;
-  save(); renderAll(); closeModal(); toast('Post updated ✓');
+  save({post: p, analytic: {postId: p.id, data: analytics[p.id]}}); renderAll(); closeModal(); toast('Post updated ✓');
 }
 function deletePostFromModal() {
   if (!confirm('Delete this post?')) return;
@@ -1636,7 +1636,7 @@ function renderAnalytics() {
 function updateAnalytic(id, field, value) {
   if (!analytics[id]) analytics[id] = {};
   analytics[id][field] = value;
-  save();
+  save({analytic: {postId: id, data: analytics[id]}});
 }
 
 // ════════════════════════════════════════════
